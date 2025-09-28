@@ -1,0 +1,19 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pip_conf_index_global"
+
+[packages]
+pyqt5 = "*"
+qt-material = "*"
+tidalapi = "*"
+tidal-dl = "*"
+textual = {extras = ["syntax"], version = "*"}
+python-mpv = "*"
+
+[dev-packages]
+black = "*"
+pyspelling = "*"
+
+[requires]
+python_version = "3.13"

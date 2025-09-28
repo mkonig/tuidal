@@ -1,0 +1,7 @@
+[flake8]
+ignore = E203
+max-line-length = 100
+docstring-convention = google
+style = google
+allow-init-docstring = True
+check-class-attributes = False
