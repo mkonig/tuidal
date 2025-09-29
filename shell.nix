@@ -1,14 +1,15 @@
 { pkgs ? import <nixpkgs> { } }:
 
 pkgs.mkShell {
+  PIPENV_VENV_IN_PROJECT = true;
+  shellHook = ''
+    export PYTHONPATH=$PYTHONPATH:$(fd -I -td site-packages $(pipenv --venv))
+  '';
   packages = with pkgs; [
     python313
     pipenv
     mpv
-    mpvc
     libnotify
-    socat
-    rlwrap
     lefthook
     basedpyright
     hunspell

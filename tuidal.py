@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
+"""Tidal tui player."""
 
 import datetime
-import json
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -10,14 +10,21 @@ import mpv
 import tidalapi
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Vertical
+from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
 from textual.theme import Theme
-from textual.widgets import Footer, Header, Input, OptionList, Select, Static
+from textual.timer import Timer
+from textual.widgets import (
+    Footer,
+    Header,
+    Input,
+    OptionList,
+    ProgressBar,
+    Static,
+)
 from textual.widgets.option_list import Option
-from tidalapi import Session
 
-TUIDAL_THEME = Theme(
+TUIDAL_THEME: Theme = Theme(
     name="tuidal-latte",
     primary="#1e66f5",
     secondary="#8839ef",
@@ -32,8 +39,16 @@ TUIDAL_THEME = Theme(
 
 
 class Session:
-    def __init__(self):
-        self.session = None
+    """Tidal session management."""
+
+    def __init__(self, silent: bool = False):
+        """Init.
+
+        Args:
+            silent (bool): Log output or not.
+        """
+        self.session: tidalapi.Session | None = None
+        self.silent = silent
 
     def get_session_file_path(self) -> Path:
         """Get the path for storing the session file.
@@ -46,38 +61,35 @@ class Session:
         session_dir.mkdir(parents=True, exist_ok=True)
         return session_dir / "session.json"
 
-    def login_to_tidal(self, silent: bool = False) -> bool:
-        """Login to Tidal using OAuth simple flow.
+    def already_logged_in(self) -> bool:
+        if self.session.check_login():
+            return True
 
-        Args:
-            session (tidalapi.Session): The session to authenticate
-            silent (bool): If True, suppress print statements
+        return False
+
+    def login_to_tidal(self) -> bool:
+        """Login to Tidal using OAuth simple flow.
 
         Returns:
             bool: True if successful, False otherwise
         """
-        if self.session.check_login():
-            if not silent:
-                print("Already logged in")
+        if self.already_logged_in():
             return True
 
         try:
-            session.login_oauth_simple()
-            if not silent:
+            self.session.login_oauth_simple()
+            if not self.silent:
                 print("Successfully logged in to Tidal")
-            save_session(session, silent)
+            self.save_session()
             return True
-        except Exception as e:
-            if not silent:
+        except TimeoutError as e:
+            if not self.silent:
                 print(f"Login failed: {e}")
             return False
 
-    def create_session(self, silent=False) -> Session:
+    def create_session(self):
         """Create and return a new Tidal session, loading from file if
         available.
-
-        Args:
-            silent (bool): If True, suppress print statements
 
         Returns:
             tidalapi.Session: A Tidal session object
@@ -89,32 +101,29 @@ class Session:
             try:
                 self.session.load_session_from_file(session_file)
                 if self.session.check_login():
-                    if not silent:
+                    if not self.silent:
                         print("Loaded existing session")
-                if not silent:
+                    return
+                if not self.silent:
                     print("Existing session expired, will need to login again")
-            except Exception as e:
-                if not silent:
+            except TimeoutError as e:
+                if not self.silent:
                     print(f"Failed to load session: {e}")
 
-    def save_session(self, silent: bool = False) -> bool:
+    def save_session(self) -> bool:
         """Save the session to file.
-
-        Args:
-            session (tidalapi.Session): The session to save
-            silent (bool): If True, suppress print statements
 
         Returns:
             bool: True if successful, False otherwise
         """
         try:
-            session_file = get_session_file_path()
+            session_file = self.get_session_file_path()
             self.session.save_session_to_file(session_file)
-            if not silent:
+            if not self.silent:
                 print(f"Session saved to {session_file}")
             return True
         except Exception as e:
-            if not silent:
+            if not self.silent:
                 print(f"Failed to save session: {e}")
             return False
 
@@ -134,29 +143,61 @@ class TrackSelection(Screen):
     def __init__(self, session: Session, album_id: int):
         super().__init__()
         self.track_list: OptionList = OptionList(id="track_list")
+        self.currently_playing: Static = Static(id="currently_playing")
+        self.playback_time: Static = Static(id="playback_time")
+        self.track_duration: Static = Static(id="track_duration")
+        self.player_state: PlayerState = self.PlayerState.STOPPED
+        self.progress_bar: ProgressBar = ProgressBar(
+            show_percentage=False, show_eta=False
+        )
+        self.playback_timer: Timer = self.set_interval(
+            1, self.make_progress, pause=True
+        )
+
         self.session = session
         self.player = mpv.MPV()
         self.album = self.session.album(album_id)
-        self.player_state: PlayerState = self.PlayerState.STOPPED
+        self.current_track = None
 
     def action_select(self):
-        track_id = int(self.track_list.get_option_at_index(self.track_list.highlighted).id)
-        track_obj = self.session.track(track_id)
-        self.player.play(track_obj.get_url())
-
+        track_id = int(
+            self.track_list.get_option_at_index(self.track_list.highlighted).id
+        )
+        self.current_track = self.session.track(track_id)
+        self.player.play(self.current_track.get_url())
+        self.player.wait_until_playing()
         self.player_state = self.PlayerState.PLAYING
+
+        self.currently_playing.update(self.current_track.name)
+        self.progress_bar.update(total=self.player.duration, progress=0)
+        self.progress_bar.advance(0)
+        self.playback_timer.resume()
+        self.track_duration.update(self.player.osd.duration)
+
+    def make_progress(self):
+        self.progress_bar.advance()
+        self.playback_time.update(f"{self.player.osd.time_pos}")
+
+        if not self.player.percent_pos or self.player.percent_pos >= 100:
+            self.track_list.action_cursor_down()
+            self.action_select()
 
     def pause(self, pause: bool = True):
         self.player.pause = pause
-        self.player_state = self.PlayerState.PAUSED if pause else self.PlayerState.PLAYING
+        self.player_state = (
+            self.PlayerState.PAUSED if pause else self.PlayerState.PLAYING
+        )
 
     def action_play_pause(self):
         if self.player_state == self.PlayerState.PLAYING:
             self.pause(True)
-        elif self.player_state in [self.PlayerState.PAUSED, self.PlayerState.STOPPED]:
+        elif self.player_state in [
+            self.PlayerState.PAUSED,
+            self.PlayerState.STOPPED,
+        ]:
             self.pause(False)
 
-    def search_tracks(self, limit=200, offset=0):
+    def search_tracks(self, limit=200, offset=0) -> list[object]:
         try:
             if self.album:
                 return self.album.tracks()
@@ -168,18 +209,24 @@ class TrackSelection(Screen):
         tracks = self.search_tracks()
         for track in tracks:
             duration = datetime.timedelta(seconds=track.duration)
-            self.track_list.add_option(Option(f"{track.name} : {duration}", id=track.id))
+            self.track_list.add_option(
+                Option(f"{track.name} : {duration}", id=track.id)
+            )
 
         self.track_list.focus()
         self.track_list.action_first()
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield Vertical(
-            Static(f"Album: {self.album.name} ({self.album.artist.name})"),
-            Static("Tracks:"),
-            self.track_list,
-        )
+        with Vertical():
+            yield Static(f"Album: {self.album.name} ({self.album.artist.name})")
+            yield Static("Tracks:")
+            yield self.track_list
+            yield Static("Currently playing:")
+            yield self.currently_playing
+            yield self.playback_time
+            yield self.progress_bar
+            yield self.track_duration
         yield Footer()
 
 
@@ -196,7 +243,9 @@ class AlbumSelection(Screen):
         self.artist = self.session.artist(artist_id)
 
     def action_select(self):
-        selected_album_id = int(self.album_list.get_option_at_index(self.album_list.highlighted).id)
+        selected_album_id = int(
+            self.album_list.get_option_at_index(self.album_list.highlighted).id
+        )
         self.dismiss(("album_selected", selected_album_id))
 
     def search_albums(self, limit=200, offset=0):
@@ -222,7 +271,11 @@ class AlbumSelection(Screen):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield Vertical(Static(f"Artist: {self.artist.name}"), Static("Albums:"), self.album_list)
+        yield Vertical(
+            Static(f"Artist: {self.artist.name}"),
+            Static("Albums:"),
+            self.album_list,
+        )
         yield Footer()
 
 
@@ -267,14 +320,20 @@ class ArtistSearch(Screen):
         """Select the highlighted artist."""
         if self.artist_list.highlighted is not None:
             selected_artist_id = int(
-                self.artist_list.get_option_at_index(self.artist_list.highlighted).id
+                self.artist_list.get_option_at_index(
+                    self.artist_list.highlighted
+                ).id
             )
             self.dismiss(("artist_selected", selected_artist_id))
 
-    def search_artists(self, query: str, limit: int = 10, offset: int = 0) -> list[Any]:
+    def search_artists(
+        self, query: str, limit: int = 10, offset: int = 0
+    ) -> list[Any]:
         try:
             artist_model = tidalapi.Artist
-            results = self.session.search(query, models=[artist_model], limit=limit + offset)
+            results = self.session.search(
+                query, models=[artist_model], limit=limit + offset
+            )
             if "artists" in results:
                 return results["artists"][offset : offset + limit]
             return []
@@ -298,7 +357,9 @@ class Tuidal(App):
 
     def album_selection(self, result):
         _, artist_id = result
-        self.push_screen(AlbumSelection(self.session, artist_id), self.track_selection)
+        self.push_screen(
+            AlbumSelection(self.session, artist_id), self.track_selection
+        )
 
     def track_selection(self, result):
         _, album_id = result
@@ -307,12 +368,12 @@ class Tuidal(App):
 
 def main():
     session = Session()
-    session.create_session(silent=True)
-    if session.login_to_tidal():
+    session.create_session()
+    if session.already_logged_in():
         app = Tuidal(session)
         app.run()
     else:
-        print("Login failed")
+        session.login_to_tidal()
 
 
 if __name__ == "__main__":
