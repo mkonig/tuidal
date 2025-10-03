@@ -10,6 +10,8 @@ tidalapi = "*"
 tidal-dl = "*"
 textual = {extras = ["syntax"], version = "*"}
 python-mpv = "*"
+requests = "*"
+structlog = "*"
 
 [dev-packages]
 black = "*"
