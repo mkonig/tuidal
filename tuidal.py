@@ -23,10 +23,10 @@ from textual.widgets import (
     Static,
 )
 from textual.widgets.option_list import Option
-from tidalapi.media import Track as TidalTrack
 from tidalapi.album import Album as TidalAlbum
 from tidalapi.artist import Artist as TidalArtist
 from tidalapi.exceptions import ObjectNotFound
+from tidalapi.media import Track as TidalTrack
 from tidalapi.session import Session as TidalSession
 
 TUIDAL_THEME: Theme = Theme(
@@ -208,7 +208,7 @@ class TrackSelection(Screen):
         """Call when a track is selected from the track list."""
         highlighted = self.track_list.highlighted
         h = self.track_list.highlighted_option
-        self.notify(f"in action selection: {h=}")
+        self.notify(f"in action selection: {h=}, index={highlighted}")
         if highlighted is None:
             self.notify("No track is highlighted")
             log.info("No track is highlighted")
@@ -233,19 +233,28 @@ class TrackSelection(Screen):
         self.progress_bar.advance()
         self.playback_time.update(f"{self.player.osd.time_pos}")
 
-        if not self.player.percent_pos or int(self.player.percent_pos) >= 100:
-            self.track_list.action_cursor_down()
-            self.action_select()
+        if self._continue_with_next_track(self):
+            self.action_next_track()
+
+    def _track_finished(self) -> bool:
+        """Check if track finished."""
+        return self.player.idle_active or int(self.player.percent_pos) >= 100
+
+    def _is_playing(self) -> bool:
+        """Check if player is playing."""
+        return self.player_state == self.PlayerState.PLAYING
+
+    def _continue_with_next_track(self) -> bool:
+        """Check if player should continue with the next track."""
+        if self._is_playing() and self._track_finished():
+            return True
+        return False
 
     def action_next_track(self):
         """Play next track."""
         self.playback_timer.pause()
         self.track_list.action_cursor_down()
-        highlighted = self.track_list.highlighted
-        self.notify(f"{highlighted=}")
-        h = self.track_list.highlighted_option
-        self.notify(f"{h=}")
-        #  self.action_select()
+        self.action_select()
 
     def action_prev_track(self):
         """Play previous track."""
@@ -422,20 +431,33 @@ class ArtistSearch(Screen):
     ]
 
     def __init__(self, session: Session):
+        """Init Artist search with provider session.
+
+        Args:
+            session (Session): The provider session.
+        """
         super().__init__()
         self.artist_list: OptionList = OptionList(id="artist_list")
         self.search_input: Input = Input(id="search")
         self.session: Session = session
 
     def action_new_search(self):
+        """Start a new search."""
+        self.search_input.clear()
         self.search_input.focus()
 
     def compose(self) -> ComposeResult:
+        """Compose the screen.
+
+        Yields:
+            ComposeResult: The screen elements.
+        """
         yield Header()
         yield Vertical(Static("Search:"), self.search_input, self.artist_list)
         yield Footer()
 
     def handle_search(self):
+        """Handle the search for an artist."""
         query = self.search_input.value.strip()
         artists = self.search_artists(query)
         self.artist_list.clear_options()
@@ -446,6 +468,7 @@ class ArtistSearch(Screen):
         self.artist_list.action_first()
 
     def action_search_or_select(self):
+        """Handle searching or selecting an artist."""
         if self.search_input.has_focus:
             self.handle_search()
         else:

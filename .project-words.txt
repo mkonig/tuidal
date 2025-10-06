@@ -88,3 +88,5 @@ tmp
 ul
 whitespace
 json
+TidalTrack
+TidalAlbum
