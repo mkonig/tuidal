@@ -90,3 +90,9 @@ whitespace
 json
 TidalTrack
 TidalAlbum
+tui
+env
+usr
+Init
+ComposeResult
+ui

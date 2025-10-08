@@ -233,7 +233,7 @@ class TrackSelection(Screen):
         self.progress_bar.advance()
         self.playback_time.update(f"{self.player.osd.time_pos}")
 
-        if self._continue_with_next_track(self):
+        if self._continue_with_next_track():
             self.action_next_track()
 
     def _track_finished(self) -> bool:
@@ -317,7 +317,11 @@ class TrackSelection(Screen):
         self.track_list.action_first()
 
     def compose(self) -> ComposeResult:
-        """Build the track selection screen."""
+        """Build the track selection screen.
+
+        Yields:
+            The ui.
+        """
         yield Header()
         with Vertical():
             yield Static(f"Album: {self.album.name} ({self.album.artist.name})")
@@ -424,6 +428,15 @@ class AlbumSelection(Screen):
 
 
 class ArtistSearch(Screen):
+    """The artist search screen.
+
+    Attributes:
+        BINDINGS:
+        artist_list:
+        search_input:
+        session:
+    """
+
     BINDINGS = [
         Binding("escape", "quit", "Quit"),
         Binding("/", "new_search", "New search"),
@@ -487,6 +500,16 @@ class ArtistSearch(Screen):
     def search_artists(
         self, query: str, limit: int = 10, offset: int = 0
     ) -> list[Any]:
+        """Query music provider for artists.
+
+        Args:
+            query (str): The artist query.
+            limit (int): Max number of results.
+            offset (int): Return results from offset on.
+
+        Returns:
+            list[Any]: List of artists.
+        """
         try:
             artist_model = TidalArtist
             results = self.session.session.search(
@@ -495,7 +518,7 @@ class ArtistSearch(Screen):
             if "artists" in results:
                 return results["artists"][offset : offset + limit]
             return []
-        except Exception as e:
+        except ValueError as e:
             log.info("Exception while artist search", exception=e)
             return []
 

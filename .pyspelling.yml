@@ -19,19 +19,6 @@ matrix:
   - pyspelling.filters.python:
       group_comments: true
       decode_escapes: true
-  - pyspelling.filters.context:
-      context_visible_first: true
-      delimiters:
-      # Ignore code blocks in docstrings
-      - open: '(?s)^(?P<open> *```.*?)$'
-        close: '^(?P=open)$'
-      # Ignore URLs
-      - open: '\b(?:https?|ftp)://'
-        close: '(?=\s|$)'
-      # Ignore file paths
-      - open: '(?i)(?:(?:[a-z]:)?[/\\])?(?:[a-z0-9_.-]+[/\\])+[a-z0-9_.-]*'
-        close: '(?=\s|$)'
-  - pyspelling.filters.url
 
 - name: markdown
   sources:
@@ -49,16 +36,3 @@ matrix:
     output: build/dictionary/markdown.dic
   pipeline:
   - pyspelling.filters.markdown
-  - pyspelling.filters.context:
-      context_visible_first: true
-      delimiters:
-      # Ignore code blocks
-      - open: '(?s)^```.*?$'
-        close: '^```$'
-      # Ignore inline code
-      - open: '`'
-        close: '`'
-      # Ignore URLs
-      - open: '\b(?:https?|ftp)://'
-        close: '(?=\s|$)'
-  - pyspelling.filters.url

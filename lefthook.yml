@@ -15,19 +15,4 @@ pre-commit:
       run: flake8 {staged_files}
     pyspelling:
       glob: "*.{py,md}"
-      run: pipenv run pyspelling -c .pyspelling.yml
-
-pre-push:
-  commands:
-    black-check:
-      run: black --check .
-    flake8-check:
-      run: flake8 .
-    pyspelling-check:
-      run: pipenv run pyspelling -c .pyspelling.yml
-    trailing-whitespace-check:
-      run: |
-        if grep -r '[[:space:]]$' --include="*.py" --include="*.md" --include="*.txt" --include="*.yaml" --include="*.yml" --include="*.json" .; then
-          echo "Found trailing whitespace. Please run: sed -i 's/[[:space:]]*$//' <files>"
-          exit 1
-        fi
+      run: pyspelling -c .pyspelling.yml

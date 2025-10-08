@@ -13,9 +13,5 @@ python-mpv = "*"
 requests = "*"
 structlog = "*"
 
-[dev-packages]
-black = "*"
-pyspelling = "*"
-
 [requires]
 python_version = "3.13"

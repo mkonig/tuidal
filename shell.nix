@@ -1,5 +1,4 @@
 { pkgs ? import <nixpkgs> { } }:
-
 pkgs.mkShell {
   PIPENV_VENV_IN_PROJECT = true;
   shellHook = ''
@@ -11,10 +10,9 @@ pkgs.mkShell {
     mpv
     libnotify
     lefthook
-    basedpyright
     hunspell
     hunspellDicts.en_US
-    codespell
     python313Packages.mpv
+    python313Packages.pyspelling
   ];
 }
