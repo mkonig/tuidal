@@ -96,3 +96,5 @@ usr
 Init
 ComposeResult
 ui
+gui
+loglevel

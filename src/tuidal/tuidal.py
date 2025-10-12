@@ -10,10 +10,11 @@ import mpv
 import structlog
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Vertical
+from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
 from textual.theme import Theme
 from textual.timer import Timer
+from textual.widget import Widget
 from textual.widgets import (
     Footer,
     Header,
@@ -43,6 +44,235 @@ TUIDAL_THEME: Theme = Theme(
 )
 
 log = structlog.get_logger()
+
+
+def my_log(loglevel: str, component: str, message: str):
+    """Custom log handler for mpv.
+
+    Args:
+        loglevel: The log level.
+        component: A component.
+        message: The main message.
+    """
+    log.info(f"{component}: {message}")
+
+
+class PlayerWidget(Widget):
+    """A widget representing the player.
+
+    Attributes:
+        DEFAULT_CSS: The default visual representation.
+        currently_playing: Track.
+        playback_time: Time.
+        track_duration: Duration.
+        progress_bar: Visual progress.
+        player: External player.
+        playback_timer: Timer.
+        repeat: How to repeat.
+        player_state: Player state.
+        tracks: List of tracks
+        current_track_index: Track.
+        current_track: Track.
+    """
+
+    DEFAULT_CSS = """
+    .player {
+        width: auto;
+        margin: 0 1 0 1;
+    }
+    """
+
+    class State(Enum):
+        """Player states.
+
+        Attributes:
+            PLAYING:
+            PAUSED:
+            STOPPED:
+        """
+
+        PLAYING = 1
+        PAUSED = 2
+        STOPPED = 3
+
+    class Repeat(Enum):
+        """State of repeating.
+
+        Attributes:
+            NO:
+            TRACK:
+            TRACK_LIST:
+        """
+
+        NO = 1
+        TRACK = 2
+        TRACK_LIST = 3
+
+    def __init__(self, widget_id: str):
+        """Init the player widget.
+
+        Args:
+            widget_id: To identify it.
+        """
+        super().__init__(id=widget_id)
+        self.currently_playing: Static = Static(
+            id="currently_playing", classes="player"
+        )
+        self.playback_time: Static = Static(
+            id="playback_time", classes="player"
+        )
+        self.track_duration: Static = Static(
+            id="track_duration", classes="player"
+        )
+        self.progress_bar: ProgressBar = ProgressBar(
+            show_percentage=False, show_eta=False, classes="player"
+        )
+        self.progress_bar.update(total=100, progress=0)
+        self.player: mpv.MPV = mpv.MPV(log_handler=my_log)
+        self.player_state: PlayerWidget.State = self.State.STOPPED
+        self.playback_timer: Timer = self.set_interval(
+            1, self.make_progress, pause=True
+        )
+        self.tracks: list[TidalTrack] = []
+        self.current_track_index: int = 0
+        self.repeat: PlayerWidget.Repeat = self.Repeat.TRACK_LIST
+
+    def compose(self) -> ComposeResult:
+        """Compose the widget.
+
+        Yields:
+            The widget gui.
+        """
+        #  yield Vertical(
+        yield Horizontal(
+            Static("Playing:", classes="player"),
+            self.currently_playing,
+            self.playback_time,
+            self.progress_bar,
+            self.track_duration,
+        )
+
+    def play(self):
+        """Play the current track."""
+        self.playback_timer.pause()
+        self.player.play(self.current_track.get_url())
+        self.player.wait_until_playing()
+        self.player_state = self.State.PLAYING
+        self.currently_playing.update(self.current_track.name or "")
+        self.progress_bar.update(total=int(self.player.duration), progress=0)
+        self.progress_bar.advance(0)
+        self.start_timer()
+        self.playback_time.update(f"{self.player.osd.time_pos}")
+        self.track_duration.update(str(self.player.osd.duration))
+
+    @property
+    def current_track(self) -> TidalTrack | None:
+        """The currently playing/paused track.
+
+        Returns:
+            The current track or None if none is playing/paused.
+        """
+        try:
+            return self.tracks[self.current_track_index]
+        except IndexError:
+            return None
+
+    def set_tracks(self, tracks: list[TidalTrack]):
+        """Set a list of tracks to play.
+
+        Args:
+            tracks: The list of tracks.
+        """
+        self.tracks = tracks
+        self.current_track_index = 0
+
+    def _track_finished(self) -> bool:
+        """Check if track finished."""
+        return self.player.idle_active or int(self.player.percent_pos) >= 100
+
+    def _is_playing(self) -> bool:
+        """Check if player is playing."""
+        return self.player_state == self.State.PLAYING
+
+    def _continue_with_next_track(self) -> bool:
+        """Check if player should continue with the next track."""
+        if self._is_playing() and self._track_finished():
+            return True
+        return False
+
+    def action_next_track(self):
+        """Play next track."""
+        match self.repeat:
+            case self.Repeat.NO:
+                self.current_track_index += 1
+            case self.Repeat.TRACK:
+                pass
+            case self.Repeat.TRACK_LIST:
+                self.current_track_index += 1
+                self.current_track_index = self.current_track_index % len(
+                    self.tracks
+                )
+
+        self.play()
+
+    def action_prev_track(self):
+        """Play previous track."""
+        match self.repeat:
+            case self.Repeat.NO:
+                self.current_track_index -= 1
+            case self.Repeat.TRACK:
+                pass
+            case self.Repeat.TRACK_LIST:
+                self.current_track_index -= 1
+                self.current_track_index = self.current_track_index % len(
+                    self.tracks
+                )
+        self.play()
+
+    def pause(self, pause: bool = True):
+        """Pause playback.
+
+        Args:
+            pause: True to pause the playback. False to continue
+                playback.
+        """
+        self.player.pause = pause
+
+        if pause:
+            self.playback_timer.pause()
+            self.player_state = self.State.PAUSED
+        else:
+            self.playback_timer.resume()
+            self.player_state = self.State.PLAYING
+
+    def action_play_pause(self):
+        """Start playing a track or pause it."""
+        if self.player_state == self.State.PLAYING:
+            self.pause(True)
+        elif self.player_state in [
+            self.State.PAUSED,
+            self.State.STOPPED,
+        ]:
+            self.pause(False)
+
+    def start_timer(self):
+        """Start the timer again."""
+        if self.player_state == self.State.PLAYING:
+            self.playback_timer = self.set_interval(
+                1, self.make_progress, pause=True
+            )
+            self.playback_timer.resume()
+
+    def make_progress(self):
+        """Progress the track.
+
+        If track ends play next track if possible.
+        """
+        self.progress_bar.advance()
+        self.playback_time.update(f"{self.player.osd.time_pos}")
+
+        if self._continue_with_next_track():
+            self.action_next_track()
 
 
 class Session:
@@ -138,64 +368,33 @@ class TrackSelection(Screen):
     Attributes:
         BINDINGS:
         track_list:
-        currently_playing:
-        playback_time:
-        track_duration:
-        progress_bar:
-        playback_timer:
         session:
-        player:
         album:
-        current_track:
-        player_state:
     """
 
     BINDINGS = [
         Binding("escape", "quit", "Quit"),
         Binding("enter", "select", "Select", priority=True),
-        Binding("p", "play_pause", "Play/Pause"),
-        Binding(">", "next_track", "Next"),
-        Binding("<", "prev_track", "Previous"),
         Binding("b", "back", "Previous Screen"),
     ]
 
-    class PlayerState(Enum):
-        """Player states.
-
-        Attributes:
-            PLAYING:
-            PAUSED:
-            STOPPED:
-        """
-
-        PLAYING = 1
-        PAUSED = 2
-        STOPPED = 3
-
-    def __init__(self, session: Session, album_id: str):
+    def __init__(
+        self, session: Session, album_id: str, player_widget: PlayerWidget
+    ):
         """Init the track selection with an album id.
 
         Args:
-            session (Session): The music provider session.
-            album_id (str): The id of the selected album.
+            session: The music provider session.
+            album_id: The id of the selected album.
+            player_widget: The player widget to show.
         """
         super().__init__()
+        self.player_widget = player_widget
         self.track_list: OptionList = OptionList(id="track_list")
-        self.currently_playing: Static = Static(id="currently_playing")
-        self.playback_time: Static = Static(id="playback_time")
-        self.track_duration: Static = Static(id="track_duration")
-        self.player_state: TrackSelection.PlayerState = self.PlayerState.STOPPED
-        self.progress_bar: ProgressBar = ProgressBar(
-            show_percentage=False, show_eta=False
-        )
-        self.playback_timer: Timer = self.set_interval(
-            1, self.make_progress, pause=True
-        )
+        self.tracks: list[TidalTrack] = []
 
         self.session = session
-        self.player: mpv.MPV = mpv.MPV()
         self.album: TidalAlbum = self.session.session.album(album_id)
-        self.current_track = None
 
     def action_back(self):
         """Go back to the previous screen."""
@@ -206,87 +405,27 @@ class TrackSelection(Screen):
 
     def action_select(self):
         """Call when a track is selected from the track list."""
+        tracks = self._get_tracks_from_highlighted_on()
+        self.player_widget.set_tracks(tracks)
+        self.player_widget.play()
+
+    def _get_tracks_from_highlighted_on(self) -> list[TidalTrack]:
+        """Get a list of tracks starting from the highlighted.
+
+        Returns:
+            A list of tracks.
+        """
         highlighted = self.track_list.highlighted
-        h = self.track_list.highlighted_option
-        self.notify(f"in action selection: {h=}, index={highlighted}")
         if highlighted is None:
-            self.notify("No track is highlighted")
             log.info("No track is highlighted")
-            return
-        track_id = self.track_list.get_option_at_index(highlighted).id
-        self.current_track = self.session.session.track(track_id)
-        self.player.play(self.current_track.get_url())
-        self.player.wait_until_playing()
-        self.player_state = self.PlayerState.PLAYING
+            return []
 
-        self.currently_playing.update(self.current_track.name or "")
-        self.progress_bar.update(total=int(self.player.duration), progress=0)
-        self.progress_bar.advance(0)
-        self.playback_timer.resume()
-        self.track_duration.update(str(self.player.osd.duration))
+        tracks: list[TidalTrack] = []
+        for pos in range(highlighted, self.track_list.option_count):
+            track_id = int(self.track_list.get_option_at_index(pos).id)
+            tracks.append(self.tracks[track_id])
 
-    def make_progress(self):
-        """Progress the track.
-
-        If track ends play next track if possible.
-        """
-        self.progress_bar.advance()
-        self.playback_time.update(f"{self.player.osd.time_pos}")
-
-        if self._continue_with_next_track():
-            self.action_next_track()
-
-    def _track_finished(self) -> bool:
-        """Check if track finished."""
-        return self.player.idle_active or int(self.player.percent_pos) >= 100
-
-    def _is_playing(self) -> bool:
-        """Check if player is playing."""
-        return self.player_state == self.PlayerState.PLAYING
-
-    def _continue_with_next_track(self) -> bool:
-        """Check if player should continue with the next track."""
-        if self._is_playing() and self._track_finished():
-            return True
-        return False
-
-    def action_next_track(self):
-        """Play next track."""
-        self.playback_timer.pause()
-        self.track_list.action_cursor_down()
-        self.action_select()
-
-    def action_prev_track(self):
-        """Play previous track."""
-        self.playback_timer.pause()
-        self.track_list.action_cursor_up()
-        self.action_select()
-
-    def pause(self, pause: bool = True):
-        """Pause playback.
-
-        Args:
-            pause (bool): True to pause the playback. False to continue
-                playback.
-        """
-        self.player.pause = pause
-
-        if pause:
-            self.playback_timer.pause()
-            self.player_state = self.PlayerState.PAUSED
-        else:
-            self.playback_timer.resume()
-            self.player_state = self.PlayerState.PLAYING
-
-    def action_play_pause(self):
-        """Start playing a track or pause it."""
-        if self.player_state == self.PlayerState.PLAYING:
-            self.pause(True)
-        elif self.player_state in [
-            self.PlayerState.PAUSED,
-            self.PlayerState.STOPPED,
-        ]:
-            self.pause(False)
+        return tracks
 
     def search_tracks(self) -> list[TidalTrack]:
         """Search tracks for an album.
@@ -306,15 +445,16 @@ class TrackSelection(Screen):
     def on_mount(self):
         """Display track list."""
         self.track_list.clear_options()
-        tracks = self.search_tracks()
-        for track in tracks:
+        self.tracks = self.search_tracks()
+        for index, track in enumerate(self.tracks):
             duration = datetime.timedelta(seconds=track.duration)
             self.track_list.add_option(
-                Option(f"{track.name} : {duration}", id=track.id)
+                Option(f"{track.name} : {duration}", id=index)
             )
 
         self.track_list.focus()
         self.track_list.action_first()
+        self.player_widget.start_timer()
 
     def compose(self) -> ComposeResult:
         """Build the track selection screen.
@@ -327,11 +467,7 @@ class TrackSelection(Screen):
             yield Static(f"Album: {self.album.name} ({self.album.artist.name})")
             yield Static("Tracks:")
             yield self.track_list
-            yield Static("Currently playing:")
-            yield self.currently_playing
-            yield self.playback_time
-            yield self.progress_bar
-            yield self.track_duration
+            yield self.player_widget
         yield Footer()
 
 
@@ -351,17 +487,21 @@ class AlbumSelection(Screen):
         Binding("b", "back", "Prev Screen", priority=True),
     ]
 
-    def __init__(self, session: Session, artist_id: str):
+    def __init__(
+        self, session: Session, artist_id: str, player_widget: PlayerWidget
+    ):
         """Init album screen with artist id.
 
         Args:
-            session (Session): The current session.
-            artist_id (str): Artist it.
+            session: The current session.
+            artist_id: Artist it.
+            player_widget: The player widget to show.
         """
         super().__init__()
         self.album_list: OptionList = OptionList(id="album_list")
         self.session = session
         self.artist = self.session.session.artist(artist_id)
+        self.player_widget = player_widget
 
     def action_back(self):
         """Go back to the previous screen."""
@@ -380,8 +520,8 @@ class AlbumSelection(Screen):
         """Search albums for the given artist.
 
         Args:
-            limit (int): Max results.
-            offset (int): Offset in results for paging.
+            limit: Max results.
+            offset: Offset in results for paging.
 
         Returns:
             list[TidalAlbum]: List of albums.
@@ -404,13 +544,17 @@ class AlbumSelection(Screen):
         for album in albums:
             self.album_list.add_option(
                 Option(
-                    f"{album.name}   {album.audio_modes}:{"|".join(album.media_metadata_tags)}",
+                    (
+                        f"{album.name}   {album.audio_modes}:"
+                        f"{'|'.join(album.media_metadata_tags)}"
+                    ),
                     id=str(album.id),
                 )
             )
 
         self.album_list.focus()
         self.album_list.action_first()
+        self.player_widget.start_timer()
 
     def compose(self) -> ComposeResult:
         """Compose the album selection screen.
@@ -423,6 +567,7 @@ class AlbumSelection(Screen):
             Static(f"Artist: {self.artist.name}"),
             Static("Albums:"),
             self.album_list,
+            self.player_widget,
         )
         yield Footer()
 
@@ -443,16 +588,22 @@ class ArtistSearch(Screen):
         Binding("enter", "search_or_select", "Search/Select", priority=True),
     ]
 
-    def __init__(self, session: Session):
+    def __init__(self, session: Session, player_widget: PlayerWidget):
         """Init Artist search with provider session.
 
         Args:
-            session (Session): The provider session.
+            session: The provider session.
+            player_widget: The player widget to show.
         """
         super().__init__()
         self.artist_list: OptionList = OptionList(id="artist_list")
         self.search_input: Input = Input(id="search")
         self.session: Session = session
+        self.player_widget = player_widget
+
+    def on_mount(self):
+        """Display artist search."""
+        self.player_widget.start_timer()
 
     def action_new_search(self):
         """Start a new search."""
@@ -466,7 +617,12 @@ class ArtistSearch(Screen):
             ComposeResult: The screen elements.
         """
         yield Header()
-        yield Vertical(Static("Search:"), self.search_input, self.artist_list)
+        yield Vertical(
+            Static("Search:"),
+            self.search_input,
+            self.artist_list,
+            self.player_widget,
+        )
         yield Footer()
 
     def handle_search(self):
@@ -503,9 +659,9 @@ class ArtistSearch(Screen):
         """Query music provider for artists.
 
         Args:
-            query (str): The artist query.
-            limit (int): Max number of results.
-            offset (int): Return results from offset on.
+            query: The artist query.
+            limit: Max number of results.
+            offset: Return results from offset on.
 
         Returns:
             list[Any]: List of artists.
@@ -535,31 +691,84 @@ class Tuidal(App):
 
     BINDINGS = [
         Binding("escape", "quit", "Esc Quit"),
+        Binding("p", "play_pause", "Play/Pause"),
+        Binding(">", "next_track", "Next"),
+        Binding("<", "prev_track", "Previous"),
     ]
+
     ENABLE_COMMAND_PALETTE = False
 
     def __init__(self, session: Session):
         """Init the app.
 
         Args:
-            session (Session): A music provider session.
+            session: A music provider session.
         """
         super().__init__()
         self.theme = "textual-light"
         self.session: Session = session
+        self.player_widget: PlayerWidget = None
+
+    def action_prev_track(self):
+        """Play the previous track."""
+        if self.player_widget:
+            self.player_widget.action_prev_track()
+
+    def action_play_pause(self):
+        """Play or pause the current track."""
+        if self.player_widget:
+            self.player_widget.action_play_pause()
+
+    def _is_player_action(self, action: str) -> bool:
+        """Check if the given action can be executed by the player widget.
+
+        Args:
+            action: An action.
+
+        Returns:
+            True if the action can be executed by the widget. False otherwise.
+        """
+        return action in ["next_track", "prev_track", "play_pause"]
+
+    def check_action(
+        self, action: str, parameters: tuple[object, ...]
+    ) -> bool | None:
+        """Check which actions should be shown.
+
+        Args:
+            action: The given action.
+            parameters: Some extra data to make the decision.
+
+        Returns:
+            True if action should be shown. False or None otherwise.
+        """
+        if self._is_player_action(action) and not (
+            self.player_widget or self.player_widget.current_track
+        ):
+            return False
+
+        return True
+
+    def action_next_track(self):
+        """Play the next track."""
+        if self.player_widget:
+            self.player_widget.action_next_track()
 
     def on_mount(self):
         """Display this on start."""
-        self.push_screen(ArtistSearch(self.session), self.album_selection)
+        self.player_widget = PlayerWidget(id="player_widget")
+        self.push_screen(
+            ArtistSearch(self.session, self.player_widget), self.album_selection
+        )
 
     def album_selection(self, artist_id: str):
         """Open the album selection screen.
 
         Args:
-            artist_id (str): The artist id.
+            artist_id: The artist id.
         """
         self.push_screen(
-            AlbumSelection(self.session, artist_id),
+            AlbumSelection(self.session, artist_id, self.player_widget),
             self.album_selection_dismissed,
         )
 
@@ -567,11 +776,14 @@ class Tuidal(App):
         """Handle album selection is dismissed.
 
         Args:
-            result (tuple[str,str]): Next action and metadata.
+            result: Next action and metadata.
         """
         next_action, album_id = result
         if next_action == "back":
-            self.push_screen(ArtistSearch(self.session), self.album_selection)
+            self.push_screen(
+                ArtistSearch(self.session, self.player_widget),
+                self.album_selection,
+            )
         else:
             self.track_selection(album_id)
 
@@ -579,10 +791,10 @@ class Tuidal(App):
         """Open the track selection screen.
 
         Args:
-            album_id (str): The id of the selected album.
+            album_id: The id of the selected album.
         """
         self.push_screen(
-            TrackSelection(self.session, album_id),
+            TrackSelection(self.session, album_id, self.player_widget),
             self.track_selection_dismissed,
         )
 
@@ -590,12 +802,12 @@ class Tuidal(App):
         """Handle track selection is dismissed.
 
         Args:
-            result (tuple[str,str]): Next action and metadata.
+            result: Next action and metadata.
         """
         next_action, album_id = result
         if next_action == "back":
             self.push_screen(
-                AlbumSelection(self.session, album_id),
+                AlbumSelection(self.session, album_id, self.player_widget),
                 self.album_selection_dismissed,
             )
         else:

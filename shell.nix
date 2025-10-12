@@ -6,11 +6,12 @@ pkgs.mkShell {
   '';
   packages = with pkgs; [
     python313
-    pipenv
+    pdm
     mpv
     libnotify
     lefthook
     hunspell
+    cocogitto
     hunspellDicts.en_US
     python313Packages.mpv
     python313Packages.pyspelling
