@@ -98,3 +98,8 @@ ComposeResult
 ui
 gui
 loglevel
+mkonig
+Changelog
+linter
+pdm
+cocogitto

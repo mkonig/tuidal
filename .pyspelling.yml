@@ -30,6 +30,7 @@ matrix:
   aspell:
     lang: en
     d: en_US
+    mode: markdown
   dictionary:
     wordlists:
     - .project-words.txt

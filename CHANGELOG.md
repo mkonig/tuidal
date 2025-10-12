@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file. See [conven
 ## [v0.1.0](https://github.com/mkonig/tuidal/compare/489657d4d510709955207f265bcf7a926cf789e1..v0.1.0) - 2025-10-12
 #### Bug Fixes
 - Fixing linter issues. - ([d0733d3](https://github.com/mkonig/tuidal/commit/d0733d30e0094740932f48ae67b6366da66ff8a6)) - [@mkonig](https://github.com/mkonig)
-- Fixing playing next and continouos playing. - ([d212db8](https://github.com/mkonig/tuidal/commit/d212db8814fff6e9b62c7840f09edeb8e92f1844)) - [@mkonig](https://github.com/mkonig)
+- Fixing playing next and continuous playing. - ([d212db8](https://github.com/mkonig/tuidal/commit/d212db8814fff6e9b62c7840f09edeb8e92f1844)) - [@mkonig](https://github.com/mkonig)
 #### Build system
 - Add cog config. - ([2c3c6c4](https://github.com/mkonig/tuidal/commit/2c3c6c482653fb695d4cb836a170378050dbc92b)) - [@mkonig](https://github.com/mkonig)
 - Switch to pdm. - ([b9c21ee](https://github.com/mkonig/tuidal/commit/b9c21ee8240bd9b7477c77a62e04a9bd8e1ade96)) - [@mkonig](https://github.com/mkonig)
@@ -13,17 +13,6 @@ All notable changes to this project will be documented in this file. See [conven
 - Added playback progress - ([6785683](https://github.com/mkonig/tuidal/commit/678568369f70c6fffdf915261927ae73a85baea7)) - [@mkonig](https://github.com/mkonig)
 #### Miscellaneous Chores
 - **(version)** 0.1.0 - ([1772a7d](https://github.com/mkonig/tuidal/commit/1772a7dbc824a789403eda79063a060296879325)) - [@mkonig](https://github.com/mkonig)
-
-- - -
-
-## 0.1.0 - 2025-10-12
-#### Bug Fixes
-- Fixing linter issues. - (d0733d3) - mkonig
-- Fixing playing next and continouos playing. - (d212db8) - mkonig
-#### Build system
-- Switch to pdm. - (b9c21ee) - mkonig
-#### Features
-- Added playback progress - (6785683) - mkonig
 
 - - -
 
