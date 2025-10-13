@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.1.1](https://github.com/mkonig/tuidal/compare/f7f2a38ac3109c9624f21800192d0e3a6fa8e16d..v0.1.1) - 2025-10-13
+#### Bug Fixes
+- Wrong parameter name when initialising PlayerWidget. - ([9803437](https://github.com/mkonig/tuidal/commit/9803437a45621e8b873988b331dd9f5825d1e62b)) - [@mkonig](https://github.com/mkonig)
+#### Documentation
+- Removed duplication in changelog. - ([f7f2a38](https://github.com/mkonig/tuidal/commit/f7f2a38ac3109c9624f21800192d0e3a6fa8e16d)) - [@mkonig](https://github.com/mkonig)
+
+- - -
+
 ## [v0.1.0](https://github.com/mkonig/tuidal/compare/489657d4d510709955207f265bcf7a926cf789e1..v0.1.0) - 2025-10-12
 #### Bug Fixes
 - Fixing linter issues. - ([d0733d3](https://github.com/mkonig/tuidal/commit/d0733d30e0094740932f48ae67b6366da66ff8a6)) - [@mkonig](https://github.com/mkonig)
