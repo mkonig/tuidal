@@ -20,11 +20,11 @@ tag_prefix = "v"
 
 [changelog]
 path = "CHANGELOG.md"
-authors = [{ username = "mkonig", signature = "mkonig" }]
 template = "remote"
 remote = "github.com"
 repository = "tuidal"
 owner = "mkonig"
+authors = [{ signature = "mkonig", username = "mkonig" }]
 
 [bump_profiles]
 

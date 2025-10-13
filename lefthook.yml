@@ -1,6 +1,17 @@
+commit-msg:
+  commands:
+    "check commit message":
+      run: cog verify --file {1}
+
 pre-commit:
   parallel: true
   commands:
+    markdown-lint:
+      glob: "*.md"
+      run: markdownlint {staged_files}
+    mdformat:
+      glob: "*.md"
+      run: mdformat {staged_files}
     trailing-whitespace:
       glob: "*.{py,md,txt,yaml,yml,json}"
       run: sed -i 's/[[:space:]]*$//' {staged_files}

@@ -756,7 +756,7 @@ class Tuidal(App):
 
     def on_mount(self):
         """Display this on start."""
-        self.player_widget = PlayerWidget(id="player_widget")
+        self.player_widget = PlayerWidget(widget_id="player_widget")
         self.push_screen(
             ArtistSearch(self.session, self.player_widget), self.album_selection
         )
