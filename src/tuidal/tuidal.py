@@ -8,13 +8,13 @@ from typing import Any
 
 import mpv
 import structlog
+import tidalapi
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal, Vertical
+from textual.containers import HorizontalGroup, VerticalGroup
 from textual.screen import Screen
 from textual.theme import Theme
 from textual.timer import Timer
-from textual.widget import Widget
 from textual.widgets import (
     Footer,
     Header,
@@ -22,6 +22,9 @@ from textual.widgets import (
     OptionList,
     ProgressBar,
     Static,
+    TabbedContent,
+    TabPane,
+    Tabs,
 )
 from textual.widgets.option_list import Option
 from tidalapi.album import Album as TidalAlbum
@@ -46,23 +49,22 @@ TUIDAL_THEME: Theme = Theme(
 log = structlog.get_logger()
 
 
-def my_log(loglevel: str, component: str, message: str):
-    """Custom log handler for mpv.
+def my_log(_loglevel: str, component: str, message: str):
+    """Set up custom log handler for mpv.
 
     Args:
-        loglevel: The log level.
+        _loglevel: The log level.
         component: A component.
         message: The main message.
     """
     log.info(f"{component}: {message}")
 
 
-class PlayerWidget(Widget):
+class PlayerWidget(HorizontalGroup):
     """A widget representing the player.
 
     Attributes:
         DEFAULT_CSS: The default visual representation.
-        currently_playing: Track.
         playback_time: Time.
         track_duration: Duration.
         progress_bar: Visual progress.
@@ -72,12 +74,19 @@ class PlayerWidget(Widget):
         player_state: Player state.
         tracks: List of tracks
         current_track_index: Track.
+        currently_playing: Track.
         current_track: Track.
     """
 
     DEFAULT_CSS = """
-    .player {
+    PlayerWidget {
+        height: 3;
+        width: 100%;
+        #  border: green;
+    }
+    Static {
         width: auto;
+        height: 1;
         margin: 0 1 0 1;
     }
     """
@@ -115,24 +124,15 @@ class PlayerWidget(Widget):
             widget_id: To identify it.
         """
         super().__init__(id=widget_id)
-        self.currently_playing: Static = Static(
-            id="currently_playing", classes="player"
-        )
-        self.playback_time: Static = Static(
-            id="playback_time", classes="player"
-        )
-        self.track_duration: Static = Static(
-            id="track_duration", classes="player"
-        )
-        self.progress_bar: ProgressBar = ProgressBar(
-            show_percentage=False, show_eta=False, classes="player"
-        )
-        self.progress_bar.update(total=100, progress=0)
+        self.currently_playing: Static | None = None
+        self.progress_bar: ProgressBar | None = None
         self.player: mpv.MPV = mpv.MPV(log_handler=my_log)
         self.player_state: PlayerWidget.State = self.State.STOPPED
         self.playback_timer: Timer = self.set_interval(
             1, self.make_progress, pause=True
         )
+        self.playback_time: Static | None = None
+        self.track_duration: Static | None = None
         self.tracks: list[TidalTrack] = []
         self.current_track_index: int = 0
         self.repeat: PlayerWidget.Repeat = self.Repeat.TRACK_LIST
@@ -143,14 +143,15 @@ class PlayerWidget(Widget):
         Yields:
             The widget gui.
         """
-        #  yield Vertical(
-        yield Horizontal(
-            Static("Playing:", classes="player"),
-            self.currently_playing,
-            self.playback_time,
-            self.progress_bar,
-            self.track_duration,
-        )
+        self.currently_playing = Static("A song", id="currently_playing")
+        self.progress_bar = ProgressBar(show_percentage=False, show_eta=False)
+        self.progress_bar.update(total=100, progress=30)
+        self.playback_time = Static("time", id="playback_time")
+        self.track_duration = Static("duration", id="track_duration")
+        yield self.currently_playing
+        yield self.playback_time
+        yield self.progress_bar
+        yield self.track_duration
 
     def play(self):
         """Play the current track."""
@@ -280,7 +281,8 @@ class Session:
 
     def __init__(self):
         """Init."""
-        self.session: TidalSession = TidalSession()
+        config = tidalapi.Config(quality=tidalapi.media.Quality.default)
+        self.session: TidalSession = TidalSession(config)
 
     def get_session_file_path(self) -> Path:
         """Get the path for storing the session file.
@@ -313,6 +315,7 @@ class Session:
             return True
 
         try:
+            log.info("Starting oauth.")
             self.session.login_oauth_simple()
             log.info("Successfully logged in to Tidal")
             self.save_session()
@@ -362,46 +365,36 @@ class Session:
             return False
 
 
-class TrackSelection(Screen):
+class TrackSelection(VerticalGroup):
     """Select a track from a album.
 
     Attributes:
-        BINDINGS:
         track_list:
         session:
         album:
     """
 
-    BINDINGS = [
-        Binding("escape", "quit", "Quit"),
-        Binding("enter", "select", "Select", priority=True),
-        Binding("b", "back", "Previous Screen"),
-    ]
-
-    def __init__(
-        self, session: Session, album_id: str, player_widget: PlayerWidget
-    ):
+    def __init__(self, session: Session, player_widget: PlayerWidget | None):
         """Init the track selection with an album id.
 
         Args:
             session: The music provider session.
-            album_id: The id of the selected album.
             player_widget: The player widget to show.
         """
         super().__init__()
         self.player_widget = player_widget
-        self.track_list: OptionList = OptionList(id="track_list")
         self.tracks: list[TidalTrack] = []
+        self.track_list: OptionList = OptionList(id="track_list")
 
         self.session = session
-        self.album: TidalAlbum = self.session.session.album(album_id)
+        self.album: TidalAlbum | None = (
+            None  # self.session.session.album(album_id)
+        )
 
-    def action_back(self):
-        """Go back to the previous screen."""
-        id = -1
-        if self.album.artist:
-            id = self.album.artist.id
-        self.dismiss(("back", id))
+    def focus_first(self):
+        """Focus the list and its first entry."""
+        self.track_list.focus()
+        self.track_list.action_first()
 
     def action_select(self):
         """Call when a track is selected from the track list."""
@@ -427,34 +420,52 @@ class TrackSelection(Screen):
 
         return tracks
 
-    def search_tracks(self) -> list[TidalTrack]:
-        """Search tracks for an album.
+    def handle_search(self, query: str = "", album_id: str = ""):
+        """Handle a search request.
+
+        Args:
+            query: Query string.
+            album_id: Album id. If given has precedence over query.
+        """
+        tracks = self.search_tracks(query, album_id)
+        self.set_tracks(tracks)
+
+    def search_tracks(
+        self, query: str = "", album_id: str = ""
+    ) -> list[TidalTrack]:
+        """Search tracks for an album or query.
+
+        Args:
+            query: Query string.
+            album_id: Album id. If given has precedence over query.
 
         Returns:
             list[TidalTrack]: List of tracks.
         """
         try:
-            if self.album:
-                return self.album.tracks()
-            else:
-                return []
+            if album_id:
+                album = self.session.session.album(album_id)
+                return album.tracks()
+
+            result = self.session.session.search(query, models=[TidalTrack])
+            return result["tracks"]
         except Exception as e:
             log.info("No tracks could be found", exception=e)
             return []
 
-    def on_mount(self):
-        """Display track list."""
+    def set_tracks(self, tracks: list[TidalTrack]):
+        """Display a list of tracks.
+
+        Args:
+            tracks: List of tracks to show.
+        """
+        self.tracks = tracks
         self.track_list.clear_options()
-        self.tracks = self.search_tracks()
         for index, track in enumerate(self.tracks):
             duration = datetime.timedelta(seconds=track.duration)
             self.track_list.add_option(
                 Option(f"{track.name} : {duration}", id=index)
             )
-
-        self.track_list.focus()
-        self.track_list.action_first()
-        self.player_widget.start_timer()
 
     def compose(self) -> ComposeResult:
         """Build the track selection screen.
@@ -462,85 +473,83 @@ class TrackSelection(Screen):
         Yields:
             The ui.
         """
-        yield Header()
-        with Vertical():
-            yield Static(f"Album: {self.album.name} ({self.album.artist.name})")
-            yield Static("Tracks:")
-            yield self.track_list
-            yield self.player_widget
-        yield Footer()
+        yield self.track_list
 
 
-class AlbumSelection(Screen):
+class AlbumSelection(VerticalGroup):
     """Screen to select an album from the artists album list.
 
     Attributes:
-        BINDINGS:
-        album_list:
         session:
-        artist:
+        player_widget:
     """
 
-    BINDINGS = [
-        Binding("escape", "quit", "Quit"),
-        Binding("enter", "select", "Select", priority=True),
-        Binding("b", "back", "Prev Screen", priority=True),
-    ]
-
-    def __init__(
-        self, session: Session, artist_id: str, player_widget: PlayerWidget
-    ):
+    def __init__(self, session: Session, player_widget: PlayerWidget | None):
         """Init album screen with artist id.
 
         Args:
             session: The current session.
-            artist_id: Artist it.
             player_widget: The player widget to show.
         """
         super().__init__()
         self.album_list: OptionList = OptionList(id="album_list")
         self.session = session
-        self.artist = self.session.session.artist(artist_id)
         self.player_widget = player_widget
 
-    def action_back(self):
-        """Go back to the previous screen."""
-        self.dismiss(("back", None))
+    def on_mount(self):
+        """On mount."""
+        self.album_list.clear_options()
 
-    def action_select(self):
-        """Dismiss this screen with the id of the selected album."""
-        selected_album_id = self.album_list.get_option_at_index(
-            self.album_list.highlighted
-        ).id
-        self.dismiss(("album_selected", selected_album_id))
+    def focus_first(self):
+        """Focus the list and its first entry."""
+        self.album_list.focus()
+        self.album_list.action_first()
+
+    def handle_search(self, query: str = "", artist_id: str = ""):
+        """Handle a search request.
+
+        Args:
+            query: Query string.
+            artist_id: Artist id. If given has precedence over query.
+        """
+        albums = self.search_albums(query, artist_id)
+        self.set_albums(albums)
 
     def search_albums(
-        self, limit: int = 200, offset: int = 0
+        self, query: str = "", artist_id: str = ""
     ) -> list[TidalAlbum]:
         """Search albums for the given artist.
 
         Args:
-            limit: Max results.
-            offset: Offset in results for paging.
+            query: Search query.
+            artist_id: Id of artist to search for. Has precedence over query.
 
         Returns:
             list[TidalAlbum]: List of albums.
         """
         try:
-            if self.artist:
-                return self.artist.get_albums(limit=limit + offset)
-            return []
+            if artist_id:
+                artist = self.session.session.artist(artist_id)
+                return artist.get_albums()
+
+            result = self.session.session.search(query, models=[TidalAlbum])
+            return result["albums"]
         except ObjectNotFound as e:
             log.error(
-                "No album found for artist.", artist=self.artist, exception=e
+                "No album found for artist_id and query.",
+                artist_id=artist_id,
+                query_str=query,
+                exception=e,
             )
             return []
 
-    def on_mount(self):
-        """On mount."""
-        log.info("AlbumSelection init.", artist_id=self.artist.id)
+    def set_albums(self, albums: list[TidalAlbum]):
+        """Set the content of the album list.
+
+        Args:
+            albums: List of albums.
+        """
         self.album_list.clear_options()
-        albums = self.search_albums()
         for album in albums:
             self.album_list.add_option(
                 Option(
@@ -552,9 +561,17 @@ class AlbumSelection(Screen):
                 )
             )
 
-        self.album_list.focus()
-        self.album_list.action_first()
-        self.player_widget.start_timer()
+    def get_selected_album_id(self) -> str:
+        """Return the currently highlighted album's id.
+
+        Returns:
+            str: Id of the currently highlighted album.
+        """
+        if self.album_list.highlighted is not None:
+            return self.album_list.get_option_at_index(
+                self.album_list.highlighted
+            ).id
+        return ""
 
     def compose(self) -> ComposeResult:
         """Compose the album selection screen.
@@ -562,33 +579,29 @@ class AlbumSelection(Screen):
         Yields:
             The ui.
         """
-        yield Header()
-        yield Vertical(
-            Static(f"Artist: {self.artist.name}"),
-            Static("Albums:"),
-            self.album_list,
-            self.player_widget,
-        )
-        yield Footer()
+        yield self.album_list
 
 
-class ArtistSearch(Screen):
+class ArtistSearch(VerticalGroup):
     """The artist search screen.
 
     Attributes:
-        BINDINGS:
+        DEFAULT_CSS:
         artist_list:
-        search_input:
         session:
     """
 
-    BINDINGS = [
-        Binding("escape", "quit", "Quit"),
-        Binding("/", "new_search", "New search"),
-        Binding("enter", "search_or_select", "Search/Select", priority=True),
-    ]
+    DEFAULT_CSS = """
+    ArtistSearch {
+        height: 5fr;
+        #  border: red;
+    }
+    .artist-list {
+        height: 8fr;
+    }
+    """
 
-    def __init__(self, session: Session, player_widget: PlayerWidget):
+    def __init__(self, session: Session, player_widget: PlayerWidget | None):
         """Init Artist search with provider session.
 
         Args:
@@ -596,14 +609,177 @@ class ArtistSearch(Screen):
             player_widget: The player widget to show.
         """
         super().__init__()
-        self.artist_list: OptionList = OptionList(id="artist_list")
-        self.search_input: Input = Input(id="search")
+        self.artist_list: OptionList | None = None
         self.session: Session = session
         self.player_widget = player_widget
 
+    def compose(self) -> ComposeResult:
+        """Compose the screen.
+
+        Yields:
+            ComposeResult: The screen elements.
+        """
+        self.artist_list = OptionList(id="artist_list", classes="artist-list")
+        yield self.artist_list
+
     def on_mount(self):
         """Display artist search."""
-        self.player_widget.start_timer()
+        #  self.player_widget.start_timer()
+
+    def handle_search(self, query: str):
+        """Handle the search for an artist.
+
+        Args:
+            query: The query.
+        """
+        artists = self.search_artists(query)
+        self.set_artists(artists)
+
+    def set_artists(self, artists: list[TidalArtist]):
+        """Set the list of artists.
+
+        Args:
+            artists: List of artists.
+        """
+        self.artist_list.clear_options()
+        for artist in artists:
+            self.artist_list.add_option(Option(artist.name, id=artist.id))
+
+    def focus_first(self):
+        """Focus the list and its first entry."""
+        self.artist_list.focus()
+        self.artist_list.action_first()
+
+    def get_selected_artist_id(self) -> str:
+        """Return the currently highlighted artist's id.
+
+        Returns:
+            str: Id of the currently highlighted artist.
+        """
+        if self.artist_list.highlighted is not None:
+            return self.artist_list.get_option_at_index(
+                self.artist_list.highlighted
+            ).id
+        return ""
+
+    def search_artists(self, query: str) -> list[Any]:
+        """Query music provider for artists.
+
+        Args:
+            query: The artist query.
+
+        Returns:
+            list[Any]: List of artists.
+        """
+        try:
+            artist_model = TidalArtist
+            results = self.session.session.search(query, models=[artist_model])
+            return results["artists"]
+        except ValueError as e:
+            log.info("Exception while artist search", exception=e)
+            return []
+
+
+class MainScreen(Screen):
+    """Main Screen.
+
+    Attributes:
+        BINDINGS:
+        DEFAULT_CSS:
+        session:
+        player_widget:
+        artist_search:
+        album_selection:
+        track_selection:
+    """
+
+    DEFAULT_CSS = """
+    .main-tabs {
+        height: 70%;
+    }
+    .main-tabs > TabPane {
+        height: 80%;
+    }
+    .tab-pane-border {
+        #  border: blue;
+    }
+    .with-yellow-border {
+        #  border: yellow;
+    }
+    """
+
+    BINDINGS = [
+        Binding("/", "new_search", "New search"),
+        Binding("enter", "search_or_select", "Search/Select", priority=True),
+        Binding("left", "previous_tab", "Prev Tab", priority=True),
+        Binding("right", "next_tab", "Next Tab", priority=True),
+    ]
+
+    def __init__(self, session: Session, player_widget: PlayerWidget):
+        """Initialize the main screen.
+
+        Args:
+            session: The current music provider session.
+            player_widget: The player widget.
+        """
+        super().__init__()
+        self.session: Session = session
+        self.artist_search: ArtistSearch | None = None
+        self.album_selection: AlbumSelection | None = None
+        self.track_selection: TrackSelection | None = None
+        self.search_input: Input | None = None
+        self.player_widget: PlayerWidget = player_widget
+
+    def action_next_tab(self):
+        """Focus next tab."""
+        self.query_one(Tabs).action_next_tab()
+
+    def action_previous_tab(self):
+        """Focus previous tab."""
+        self.query_one(Tabs).action_previous_tab()
+
+    def handle_search(self):
+        """Handle a search request."""
+        query = self.search_input.value.strip()
+        result = self.session.session.search(
+            query, models=[TidalAlbum, TidalTrack, TidalArtist]
+        )
+        if self.artist_search:
+            self.artist_search.set_artists(result["artists"])
+        if self.album_selection:
+            self.album_selection.set_albums(result["albums"])
+        if self.track_selection:
+            self.track_selection.set_tracks(result["tracks"])
+
+    def display_albums_of_selected_artist(self):
+        """Display the albums of the selected artist."""
+        artist_id = self.artist_search.get_selected_artist_id()
+        if self.album_selection:
+            self.album_selection.handle_search(artist_id=artist_id)
+            self.album_selection.focus_first()
+
+    def display_tracks_of_selected_album(self):
+        """Display the tracks of the selected album."""
+        album_id = self.album_selection.get_selected_album_id()
+        if self.track_selection:
+            self.track_selection.handle_search(album_id=album_id)
+            self.track_selection.focus_first()
+
+    def select_track(self):
+        """Play the selected track."""
+        if self.track_selection:
+            self.track_selection.action_select()
+
+    def action_search_or_select(self):
+        """Handle searching or selecting."""
+        if self.search_input.has_focus:
+            self.handle_search()
+        elif self.query_one("#track_list").has_focus:
+            self.select_track()
+        elif self.query_one("#artist_list").has_focus:
+            self.display_albums_of_selected_artist()
+        elif self.query_one("#album_list").has_focus:
+            self.display_tracks_of_selected_album()
 
     def action_new_search(self):
         """Start a new search."""
@@ -616,67 +792,22 @@ class ArtistSearch(Screen):
         Yields:
             ComposeResult: The screen elements.
         """
+        self.artist_search = ArtistSearch(self.session, self.player_widget)
+        self.album_selection = AlbumSelection(self.session, self.player_widget)
+        self.track_selection = TrackSelection(self.session, self.player_widget)
+        self.search_input = Input(id="search")
         yield Header()
-        yield Vertical(
-            Static("Search:"),
-            self.search_input,
-            self.artist_list,
-            self.player_widget,
-        )
         yield Footer()
-
-    def handle_search(self):
-        """Handle the search for an artist."""
-        query = self.search_input.value.strip()
-        artists = self.search_artists(query)
-        self.artist_list.clear_options()
-        for artist in artists:
-            self.artist_list.add_option(Option(artist.name, id=artist.id))
-
-        self.artist_list.focus()
-        self.artist_list.action_first()
-
-    def action_search_or_select(self):
-        """Handle searching or selecting an artist."""
-        if self.search_input.has_focus:
-            self.handle_search()
-        else:
-            self.select_artist()
-
-    def select_artist(self):
-        """Select the highlighted artist."""
-        if self.artist_list.highlighted is not None:
-            selected_artist_id = int(
-                self.artist_list.get_option_at_index(
-                    self.artist_list.highlighted
-                ).id
-            )
-            self.dismiss(selected_artist_id)
-
-    def search_artists(
-        self, query: str, limit: int = 10, offset: int = 0
-    ) -> list[Any]:
-        """Query music provider for artists.
-
-        Args:
-            query: The artist query.
-            limit: Max number of results.
-            offset: Return results from offset on.
-
-        Returns:
-            list[Any]: List of artists.
-        """
-        try:
-            artist_model = TidalArtist
-            results = self.session.session.search(
-                query, models=[artist_model], limit=limit + offset
-            )
-            if "artists" in results:
-                return results["artists"][offset : offset + limit]
-            return []
-        except ValueError as e:
-            log.info("Exception while artist search", exception=e)
-            return []
+        yield Static("Search:")
+        yield self.search_input
+        with TabbedContent(id="tabs", classes="with-yellow-border main-tabs"):
+            with TabPane("Artists", id="artists", classes="tab-pane-border"):
+                yield self.artist_search
+            with TabPane("Albums", id="albums", classes="tab-pane-border"):
+                yield self.album_selection
+            with TabPane("Tracks", id="tracks", classes="tab-pane-border"):
+                yield self.track_selection
+        yield self.player_widget
 
 
 class Tuidal(App):
@@ -757,61 +888,7 @@ class Tuidal(App):
     def on_mount(self):
         """Display this on start."""
         self.player_widget = PlayerWidget(widget_id="player_widget")
-        self.push_screen(
-            ArtistSearch(self.session, self.player_widget), self.album_selection
-        )
-
-    def album_selection(self, artist_id: str):
-        """Open the album selection screen.
-
-        Args:
-            artist_id: The artist id.
-        """
-        self.push_screen(
-            AlbumSelection(self.session, artist_id, self.player_widget),
-            self.album_selection_dismissed,
-        )
-
-    def album_selection_dismissed(self, result: tuple[str, str]):
-        """Handle album selection is dismissed.
-
-        Args:
-            result: Next action and metadata.
-        """
-        next_action, album_id = result
-        if next_action == "back":
-            self.push_screen(
-                ArtistSearch(self.session, self.player_widget),
-                self.album_selection,
-            )
-        else:
-            self.track_selection(album_id)
-
-    def track_selection(self, album_id: str):
-        """Open the track selection screen.
-
-        Args:
-            album_id: The id of the selected album.
-        """
-        self.push_screen(
-            TrackSelection(self.session, album_id, self.player_widget),
-            self.track_selection_dismissed,
-        )
-
-    def track_selection_dismissed(self, result: tuple[str, str]):
-        """Handle track selection is dismissed.
-
-        Args:
-            result: Next action and metadata.
-        """
-        next_action, album_id = result
-        if next_action == "back":
-            self.push_screen(
-                AlbumSelection(self.session, album_id, self.player_widget),
-                self.album_selection_dismissed,
-            )
-        else:
-            log.error("Wrong next_action", next_action=next_action)
+        self.push_screen(MainScreen(self.session, self.player_widget))
 
 
 def main():
@@ -822,6 +899,7 @@ def main():
         app = Tuidal(session)
         app.run()
     else:
+        log.info("Trying to log in")
         session.login_to_tidal()
 
 

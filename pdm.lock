@@ -5,7 +5,7 @@
 groups = ["default", "dev"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:d6e9071ce1481d2670d1fa24499db2af27a0af482f7a66538027d79e3bb27f53"
+content_hash = "sha256:7be214de7daa97f9c7aa49ac0792db0123c00075f8d75b6936f1b90bc1a65321"
 
 [[metadata.targets]]
 requires_python = ">=3.13"
@@ -287,6 +287,15 @@ files = [
 ]
 
 [[package]]
+name = "pyaes"
+version = "1.6.1"
+summary = "Pure-Python Implementation of the AES block-cipher and common modes of operation"
+groups = ["default"]
+files = [
+    {file = "pyaes-1.6.1.tar.gz", hash = "sha256:02c1b1405c38d3c370b085fb952dd8bea3fadcee6411ad99f312cc129c536d8f"},
+]
+
+[[package]]
 name = "pycryptodome"
 version = "3.23.0"
 requires_python = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,>=2.7"
@@ -560,21 +569,22 @@ files = [
 
 [[package]]
 name = "tidalapi"
-version = "0.8.6"
+version = "0.8.8"
 requires_python = "<4.0,>=3.8"
 summary = "Unofficial API for TIDAL music streaming service."
 groups = ["default"]
 dependencies = [
     "isodate<0.8.0,>=0.7.2",
     "mpegdash<0.5.0,>=0.4.0",
+    "pyaes<2.0.0,>=1.6.1",
     "python-dateutil<3.0.0,>=2.8.2",
     "ratelimit<3.0.0,>=2.2.1",
     "requests<3.0.0,>=2.32.3",
     "typing-extensions<5.0.0,>=4.12.2",
 ]
 files = [
-    {file = "tidalapi-0.8.6-py3-none-any.whl", hash = "sha256:a55f54ff4110398cd3a565b6cfc8bcbf8e104442e06db0eab8372abcd653a3d6"},
-    {file = "tidalapi-0.8.6.tar.gz", hash = "sha256:23315c717d56f08436638d217d73e710ff5ce414292b0668ae8cbfeefab92323"},
+    {file = "tidalapi-0.8.8-py3-none-any.whl", hash = "sha256:70e5ccebf608ad3fb9e17bde5fe36783322f993e1d4efb25a0ae970d898669fc"},
+    {file = "tidalapi-0.8.8.tar.gz", hash = "sha256:f378e5f8c56c0a0e59ac75880f50b986132e2e0a992da061646b5abe97704c75"},
 ]
 
 [[package]]

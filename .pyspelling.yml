@@ -22,7 +22,7 @@ matrix:
 
 - name: markdown
   sources:
-  - '**/*.md'
+  - README.md
   ignores:
   - '.venv/**'
   - '__pycache__/**'

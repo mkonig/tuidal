@@ -26,13 +26,7 @@ line_length = 80
 [tool.flake8]
 max-line-length = 80
 extend-ignore = ["E203", "W503"]
-exclude = [
-    ".git",
-    "__pycache__",
-    ".venv",
-    "build",
-    "dist"
-]
+exclude = [".git", "__pycache__", ".venv", "build", "dist"]
 # Enable trailing whitespace detection
 select = ["W291", "W292", "W293"]
 
@@ -50,19 +44,25 @@ verify_ssl = true
 name = "pip_conf_index_global"
 
 [project]
+name = "tuidal"
+version = "0.1.0"
+description = "Tidal tui player"
 # PEP 621 project metadata
 # See https://www.python.org/dev/peps/pep-0621/
 requires-python = ">=3.13"
 dependencies = [
-    "pyqt5",
-    "qt-material",
-    "tidalapi",
-    "tidal-dl",
-    "textual[syntax]",
-    "python-mpv",
-    "requests",
-    "structlog",
+  "pyqt5",
+  "qt-material",
+  "tidalapi",
+  "tidal-dl",
+  "textual[syntax]",
+  "python-mpv",
+  "requests",
+  "structlog>=25.4.0",
 ]
+
+[project.scripts]
+tuidal = "tuidal.tuidal:main"
 
 [dependency-groups]
 dev = []
@@ -70,3 +70,6 @@ dev = []
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
+
+[tool.pdm.scripts]
+start = "./src/tuidal/tuidal.py"
