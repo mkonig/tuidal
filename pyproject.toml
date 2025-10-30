@@ -34,14 +34,23 @@ select = ["W291", "W292", "W293"]
 include = ["."]
 exclude = ["**/__pycache__"]
 pythonVersion = "3.13"
-typeCheckingMode = "strict"
-reportMissingImports = true
-reportMissingTypeStubs = false
+typeCheckingMode = "recommended"
+
+[tool.autoflake]
+check = false
+imports = ["rich"]
+remove-all-unused-imports = true
+in-place = true
 
 [[tool.pdm.source]]
 url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pip_conf_index_global"
+
+
+[tool.pdm.scripts]
+tuidal = "textual run --dev ./src/tuidal/tuidal.py"
+console = "textual console -x INFO -x SYSTEM -x DEBUG -x LOGGING -x EVENT"
 
 [project]
 name = "tuidal"
@@ -59,17 +68,18 @@ dependencies = [
   "python-mpv",
   "requests",
   "structlog>=25.4.0",
+  "better-exceptions>=0.3.3",
 ]
 
 [project.scripts]
 tuidal = "tuidal.tuidal:main"
 
 [dependency-groups]
-dev = []
+dev = [
+    "textual-dev>=1.8.0",
+]
 
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
 
-[tool.pdm.scripts]
-start = "./src/tuidal/tuidal.py"

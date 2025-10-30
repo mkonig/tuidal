@@ -4,7 +4,7 @@
 import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import ClassVar
 
 import mpv
 import structlog
@@ -13,7 +13,6 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import HorizontalGroup, VerticalGroup
 from textual.screen import Screen
-from textual.theme import Theme
 from textual.timer import Timer
 from textual.widgets import (
     Footer,
@@ -33,23 +32,12 @@ from tidalapi.exceptions import ObjectNotFound
 from tidalapi.media import Track as TidalTrack
 from tidalapi.session import Session as TidalSession
 
-TUIDAL_THEME: Theme = Theme(
-    name="tuidal-latte",
-    primary="#1e66f5",
-    secondary="#8839ef",
-    accent="#40a02b",
-    warning="#df8e1d",
-    error="#d20f39",
-    success="#40a02b",
-    surface="#eff1f5",
-    panel="#e6e9ef",
-    dark=False,
-)
-
+cr = structlog.dev.ConsoleRenderer.get_active()
+cr.colors = False
 log = structlog.get_logger()
 
 
-def my_log(_loglevel: str, component: str, message: str):
+def mpv_logger(_loglevel: str, component: str, message: str):
     """Set up custom log handler for mpv.
 
     Args:
@@ -57,7 +45,7 @@ def my_log(_loglevel: str, component: str, message: str):
         component: A component.
         message: The main message.
     """
-    log.info(f"{component}: {message}")
+    log.info(f"mpv: {component}: {message}")
 
 
 class PlayerWidget(HorizontalGroup):
@@ -82,7 +70,6 @@ class PlayerWidget(HorizontalGroup):
     PlayerWidget {
         height: 3;
         width: 100%;
-        #  border: green;
     }
     Static {
         width: auto;
@@ -126,7 +113,7 @@ class PlayerWidget(HorizontalGroup):
         super().__init__(id=widget_id)
         self.currently_playing: Static | None = None
         self.progress_bar: ProgressBar | None = None
-        self.player: mpv.MPV = mpv.MPV(log_handler=my_log)
+        self.player: mpv.MPV = mpv.MPV(log_handler=mpv_logger)
         self.player_state: PlayerWidget.State = self.State.STOPPED
         self.playback_timer: Timer = self.set_interval(
             1, self.make_progress, pause=True
@@ -321,7 +308,7 @@ class Session:
             self.save_session()
             return True
         except TimeoutError as e:
-            log.info(f"Login failed: {e}")
+            log.exception(f"Login failed: {e}")
             return False
 
     def create_session(self):
@@ -347,7 +334,7 @@ class Session:
                 return
             log.info("Existing session expired, will need to login again")
         except TimeoutError as e:
-            log.info(f"Failed to load session: {e}")
+            log.exception(f"Failed to load session: {e}")
 
     def save_session(self) -> bool:
         """Save the session to file.
@@ -361,7 +348,7 @@ class Session:
             log.info(f"Session saved to {session_file}")
             return True
         except Exception as e:
-            log.info(f"Failed to save session: {e}")
+            log.exception(f"Failed to save session: {e}")
             return False
 
 
@@ -450,7 +437,7 @@ class TrackSelection(VerticalGroup):
             result = self.session.session.search(query, models=[TidalTrack])
             return result["tracks"]
         except Exception as e:
-            log.info("No tracks could be found", exception=e)
+            log.exception("No tracks could be found", exception=e)
             return []
 
     def set_tracks(self, tracks: list[TidalTrack]):
@@ -535,7 +522,7 @@ class AlbumSelection(VerticalGroup):
             result = self.session.session.search(query, models=[TidalAlbum])
             return result["albums"]
         except ObjectNotFound as e:
-            log.error(
+            log.exception(
                 "No album found for artist_id and query.",
                 artist_id=artist_id,
                 query_str=query,
@@ -594,7 +581,6 @@ class ArtistSearch(VerticalGroup):
     DEFAULT_CSS = """
     ArtistSearch {
         height: 5fr;
-        #  border: red;
     }
     .artist-list {
         height: 8fr;
@@ -641,14 +627,18 @@ class ArtistSearch(VerticalGroup):
         Args:
             artists: List of artists.
         """
-        self.artist_list.clear_options()
-        for artist in artists:
-            self.artist_list.add_option(Option(artist.name, id=artist.id))
+        if self.artist_list is not None:
+            _ = self.artist_list.clear_options()
+            for artist in artists:
+                if artist.name and artist.id:
+                    _ = self.artist_list.add_option(
+                        Option(artist.name, id=str(artist.id))
+                    )
 
     def focus_first(self):
         """Focus the list and its first entry."""
-        self.artist_list.focus()
-        self.artist_list.action_first()
+        if self.artist_list is not None:
+            self.artist_list.focus().action_first()
 
     def get_selected_artist_id(self) -> str:
         """Return the currently highlighted artist's id.
@@ -656,27 +646,29 @@ class ArtistSearch(VerticalGroup):
         Returns:
             str: Id of the currently highlighted artist.
         """
-        if self.artist_list.highlighted is not None:
-            return self.artist_list.get_option_at_index(
-                self.artist_list.highlighted
-            ).id
-        return ""
+        if self.artist_list is None or self.artist_list.highlighted is None:
+            return ""
 
-    def search_artists(self, query: str) -> list[Any]:
+        artist_id = self.artist_list.get_option_at_index(
+            self.artist_list.highlighted
+        ).id
+        return artist_id or ""
+
+    def search_artists(self, query: str) -> list[TidalArtist]:
         """Query music provider for artists.
 
         Args:
             query: The artist query.
 
         Returns:
-            list[Any]: List of artists.
+            list[TidalArtist]: List of artists.
         """
         try:
             artist_model = TidalArtist
             results = self.session.session.search(query, models=[artist_model])
             return results["artists"]
         except ValueError as e:
-            log.info("Exception while artist search", exception=e)
+            log.exception("Exception while artist search", exception=e)
             return []
 
 
@@ -697,15 +689,6 @@ class MainScreen(Screen):
     .main-tabs {
         height: 70%;
     }
-    .main-tabs > TabPane {
-        height: 80%;
-    }
-    .tab-pane-border {
-        #  border: blue;
-    }
-    .with-yellow-border {
-        #  border: yellow;
-    }
     """
 
     BINDINGS = [
@@ -724,11 +707,17 @@ class MainScreen(Screen):
         """
         super().__init__()
         self.session: Session = session
-        self.artist_search: ArtistSearch | None = None
-        self.album_selection: AlbumSelection | None = None
-        self.track_selection: TrackSelection | None = None
-        self.search_input: Input | None = None
         self.player_widget: PlayerWidget = player_widget
+        self.search_input: Input = Input(id="search")
+        self.artist_search: ArtistSearch = ArtistSearch(
+            self.session, self.player_widget
+        )
+        self.album_selection: AlbumSelection = AlbumSelection(
+            self.session, self.player_widget
+        )
+        self.track_selection: TrackSelection = TrackSelection(
+            self.session, self.player_widget
+        )
 
     def action_next_tab(self):
         """Focus next tab."""
@@ -750,6 +739,17 @@ class MainScreen(Screen):
             self.album_selection.set_albums(result["albums"])
         if self.track_selection:
             self.track_selection.set_tracks(result["tracks"])
+
+        self._focus_first()
+
+    def _focus_first(self):
+        match self.query_one("#tabs").active:
+            case "tracks":
+                self.track_selection.focus_first()
+            case "artists":
+                self.artist_search.focus_first()
+            case "albums":
+                self.album_selection.focus_first()
 
     def display_albums_of_selected_artist(self):
         """Display the albums of the selected artist."""
@@ -773,6 +773,7 @@ class MainScreen(Screen):
     def action_search_or_select(self):
         """Handle searching or selecting."""
         if self.search_input.has_focus:
+            log.info("Searching for query.", query="test")
             self.handle_search()
         elif self.query_one("#track_list").has_focus:
             self.select_track()
@@ -783,8 +784,11 @@ class MainScreen(Screen):
 
     def action_new_search(self):
         """Start a new search."""
-        self.search_input.clear()
-        self.search_input.focus()
+        try:
+            self.search_input.clear()
+            self.search_input.focus()
+        except AttributeError:
+            self.notify("Something wrong in Ui.")
 
     def compose(self) -> ComposeResult:
         """Compose the screen.
@@ -792,25 +796,21 @@ class MainScreen(Screen):
         Yields:
             ComposeResult: The screen elements.
         """
-        self.artist_search = ArtistSearch(self.session, self.player_widget)
-        self.album_selection = AlbumSelection(self.session, self.player_widget)
-        self.track_selection = TrackSelection(self.session, self.player_widget)
-        self.search_input = Input(id="search")
         yield Header()
         yield Footer()
         yield Static("Search:")
         yield self.search_input
-        with TabbedContent(id="tabs", classes="with-yellow-border main-tabs"):
-            with TabPane("Artists", id="artists", classes="tab-pane-border"):
+        with TabbedContent(id="tabs", classes="main-tabs"):
+            with TabPane("Artists", id="artists"):
                 yield self.artist_search
-            with TabPane("Albums", id="albums", classes="tab-pane-border"):
+            with TabPane("Albums", id="albums"):
                 yield self.album_selection
-            with TabPane("Tracks", id="tracks", classes="tab-pane-border"):
+            with TabPane("Tracks", id="tracks"):
                 yield self.track_selection
         yield self.player_widget
 
 
-class Tuidal(App):
+class Tuidal(App[None]):
     """The main app.
 
     Attributes:
@@ -827,7 +827,7 @@ class Tuidal(App):
         Binding("<", "prev_track", "Previous"),
     ]
 
-    ENABLE_COMMAND_PALETTE = False
+    ENABLE_COMMAND_PALETTE: ClassVar[bool] = False
 
     def __init__(self, session: Session):
         """Init the app.
@@ -838,7 +838,7 @@ class Tuidal(App):
         super().__init__()
         self.theme = "textual-light"
         self.session: Session = session
-        self.player_widget: PlayerWidget = None
+        self.player_widget: PlayerWidget | None = None
 
     def action_prev_track(self):
         """Play the previous track."""
@@ -849,36 +849,6 @@ class Tuidal(App):
         """Play or pause the current track."""
         if self.player_widget:
             self.player_widget.action_play_pause()
-
-    def _is_player_action(self, action: str) -> bool:
-        """Check if the given action can be executed by the player widget.
-
-        Args:
-            action: An action.
-
-        Returns:
-            True if the action can be executed by the widget. False otherwise.
-        """
-        return action in ["next_track", "prev_track", "play_pause"]
-
-    def check_action(
-        self, action: str, parameters: tuple[object, ...]
-    ) -> bool | None:
-        """Check which actions should be shown.
-
-        Args:
-            action: The given action.
-            parameters: Some extra data to make the decision.
-
-        Returns:
-            True if action should be shown. False or None otherwise.
-        """
-        if self._is_player_action(action) and not (
-            self.player_widget or self.player_widget.current_track
-        ):
-            return False
-
-        return True
 
     def action_next_track(self):
         """Play the next track."""

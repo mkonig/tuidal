@@ -103,3 +103,4 @@ Changelog
 linter
 pdm
 cocogitto
+TidalArtist

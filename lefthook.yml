@@ -21,6 +21,9 @@ pre-commit:
     isort:
       glob: "*.py"
       run: isort --profile black {staged_files}
+    autoflake:
+      glob: "*.py"
+      run: autoflake {staged_files}
     flake8:
       glob: "*.py"
       run: flake8 {staged_files}
