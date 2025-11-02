@@ -8,6 +8,8 @@ from typing import ClassVar
 
 import mpv
 import structlog
+from textual.content import Content
+import stylix_theme
 import tidalapi
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -361,6 +363,15 @@ class TrackSelection(VerticalGroup):
         album:
     """
 
+    DEFAULT_CSS = """
+    TrackSelection {
+        height: 5fr;
+    }
+    .track-list {
+        height: 8fr;
+    }
+    """
+
     def __init__(self, session: Session, player_widget: PlayerWidget | None):
         """Init the track selection with an album id.
 
@@ -371,8 +382,9 @@ class TrackSelection(VerticalGroup):
         super().__init__()
         self.player_widget = player_widget
         self.tracks: list[TidalTrack] = []
-        self.track_list: OptionList = OptionList(id="track_list")
-
+        self.track_list: OptionList = OptionList(
+            id="track_list", classes="track-list"
+        )
         self.session = session
         self.album: TidalAlbum | None = (
             None  # self.session.session.album(album_id)
@@ -471,6 +483,15 @@ class AlbumSelection(VerticalGroup):
         player_widget:
     """
 
+    DEFAULT_CSS = """
+    AlbumSelection {
+        height: 5fr;
+    }
+    .album-list {
+        height: 8fr;
+    }
+    """
+
     def __init__(self, session: Session, player_widget: PlayerWidget | None):
         """Init album screen with artist id.
 
@@ -479,7 +500,9 @@ class AlbumSelection(VerticalGroup):
             player_widget: The player widget to show.
         """
         super().__init__()
-        self.album_list: OptionList = OptionList(id="album_list")
+        self.album_list: OptionList = OptionList(
+            id="album_list", classes="album-list"
+        )
         self.session = session
         self.player_widget = player_widget
 
@@ -696,6 +719,9 @@ class MainScreen(Screen):
         Binding("enter", "search_or_select", "Search/Select", priority=True),
         Binding("left", "previous_tab", "Prev Tab", priority=True),
         Binding("right", "next_tab", "Next Tab", priority=True),
+        Binding("a", "focus_tab('artists')", priority=True),
+        Binding("b", "focus_tab('albums')", priority=True),
+        Binding("t", "focus_tab('tracks')", priority=True),
     ]
 
     def __init__(self, session: Session, player_widget: PlayerWidget):
@@ -726,6 +752,9 @@ class MainScreen(Screen):
     def action_previous_tab(self):
         """Focus previous tab."""
         self.query_one(Tabs).action_previous_tab()
+
+    def action_focus_tab(self, tab_name: str):
+        self.query_one(TabbedContent).active = tab_name
 
     def handle_search(self):
         """Handle a search request."""
@@ -801,11 +830,11 @@ class MainScreen(Screen):
         yield Static("Search:")
         yield self.search_input
         with TabbedContent(id="tabs", classes="main-tabs"):
-            with TabPane("Artists", id="artists"):
+            with TabPane(Content.from_markup("[u]A[/u]rtists"), id="artists"):
                 yield self.artist_search
-            with TabPane("Albums", id="albums"):
+            with TabPane(Content.from_markup("Al[u]b[/u]ums"), id="albums"):
                 yield self.album_selection
-            with TabPane("Tracks", id="tracks"):
+            with TabPane(Content.from_markup("[u]T[/u]racks"), id="tracks"):
                 yield self.track_selection
         yield self.player_widget
 
@@ -836,7 +865,6 @@ class Tuidal(App[None]):
             session: A music provider session.
         """
         super().__init__()
-        self.theme = "textual-light"
         self.session: Session = session
         self.player_widget: PlayerWidget | None = None
 
@@ -857,6 +885,9 @@ class Tuidal(App[None]):
 
     def on_mount(self):
         """Display this on start."""
+        self.register_theme(stylix_theme.stylix)
+        self.theme = "stylix"
+        log.info("Theme", theme=self.theme)
         self.player_widget = PlayerWidget(widget_id="player_widget")
         self.push_screen(MainScreen(self.session, self.player_widget))
 

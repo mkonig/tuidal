@@ -1,4 +1,5 @@
 atexit
+tabname
 basedpyright
 Catppuccin
 DEVNULL
