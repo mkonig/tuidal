@@ -3,17 +3,16 @@
 
 import datetime
 from enum import Enum
-from pathlib import Path
 from typing import ClassVar
 
 import mpv
 import structlog
-from textual.content import Content
 import stylix_theme
-import tidalapi
+from session import Session
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import HorizontalGroup, VerticalGroup
+from textual.content import Content
 from textual.screen import Screen
 from textual.timer import Timer
 from textual.widgets import (
@@ -32,7 +31,6 @@ from tidalapi.album import Album as TidalAlbum
 from tidalapi.artist import Artist as TidalArtist
 from tidalapi.exceptions import ObjectNotFound
 from tidalapi.media import Track as TidalTrack
-from tidalapi.session import Session as TidalSession
 
 cr = structlog.dev.ConsoleRenderer.get_active()
 cr.colors = False
@@ -265,95 +263,6 @@ class PlayerWidget(HorizontalGroup):
             self.action_next_track()
 
 
-class Session:
-    """Tidal session management."""
-
-    def __init__(self):
-        """Init."""
-        config = tidalapi.Config(quality=tidalapi.media.Quality.default)
-        self.session: TidalSession = TidalSession(config)
-
-    def get_session_file_path(self) -> Path:
-        """Get the path for storing the session file.
-
-        Returns:
-            Path: Path object for the session.json file
-        """
-        home_dir = Path.home()
-        session_dir = home_dir / ".config" / "tuidal"
-        session_dir.mkdir(parents=True, exist_ok=True)
-        return session_dir / "session.json"
-
-    def already_logged_in(self) -> bool:
-        """Check if already logged in.
-
-        Returns:
-            bool: True if already logged in. False otherwise.
-        """
-        logged_in = self.session.check_login()
-        log.info("Checking if already logged in.", logged_in=logged_in)
-        return logged_in
-
-    def login_to_tidal(self) -> bool:
-        """Login to Tidal using OAuth simple flow.
-
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        if self.already_logged_in():
-            return True
-
-        try:
-            log.info("Starting oauth.")
-            self.session.login_oauth_simple()
-            log.info("Successfully logged in to Tidal")
-            self.save_session()
-            return True
-        except TimeoutError as e:
-            log.exception(f"Login failed: {e}")
-            return False
-
-    def create_session(self):
-        """Create and return a new Tidal session.
-
-        Loading from file if available.
-        """
-        log.info("Creating tuidal session.")
-        session_file = self.get_session_file_path()
-
-        if session_file.exists():
-            self.load_from_file()
-        else:
-            self.login_to_tidal()
-
-    def load_from_file(self):
-        """Load a session from file."""
-        try:
-            session_file = self.get_session_file_path()
-            self.session.load_session_from_file(session_file)
-            if self.session.check_login():
-                log.info("Loaded existing session")
-                return
-            log.info("Existing session expired, will need to login again")
-        except TimeoutError as e:
-            log.exception(f"Failed to load session: {e}")
-
-    def save_session(self) -> bool:
-        """Save the session to file.
-
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        try:
-            session_file = self.get_session_file_path()
-            self.session.save_session_to_file(session_file)
-            log.info(f"Session saved to {session_file}")
-            return True
-        except Exception as e:
-            log.exception(f"Failed to save session: {e}")
-            return False
-
-
 class TrackSelection(VerticalGroup):
     """Select a track from a album.
 
@@ -385,15 +294,19 @@ class TrackSelection(VerticalGroup):
         self.track_list: OptionList = OptionList(
             id="track_list", classes="track-list"
         )
-        self.session = session
-        self.album: TidalAlbum | None = (
-            None  # self.session.session.album(album_id)
-        )
+        self.session: Session = session
+        self.album: TidalAlbum | None = None
 
-    def focus_first(self):
-        """Focus the list and its first entry."""
+    def focus_list(self, focus_first: bool = False):
+        """Focus the list and its first entry.
+
+        Args:
+            focus_first: Focus the first element in the list.
+        """
         self.track_list.focus()
-        self.track_list.action_first()
+        highlighted = self.track_list.highlighted
+        if highlighted is None or focus_first:
+            self.track_list.action_first()
 
     def action_select(self):
         """Call when a track is selected from the track list."""
@@ -462,9 +375,8 @@ class TrackSelection(VerticalGroup):
         self.track_list.clear_options()
         for index, track in enumerate(self.tracks):
             duration = datetime.timedelta(seconds=track.duration)
-            self.track_list.add_option(
-                Option(f"{track.name} : {duration}", id=index)
-            )
+            text = Content.from_markup(f"{track.name} [d]{duration}[/d]")
+            self.track_list.add_option(Option(text, id=str(index)))
 
     def compose(self) -> ComposeResult:
         """Build the track selection screen.
@@ -503,17 +415,19 @@ class AlbumSelection(VerticalGroup):
         self.album_list: OptionList = OptionList(
             id="album_list", classes="album-list"
         )
-        self.session = session
+        self.session: Session = session
         self.player_widget = player_widget
 
     def on_mount(self):
         """On mount."""
         self.album_list.clear_options()
 
-    def focus_first(self):
+    def focus_list(self, focus_first: bool = False):
         """Focus the list and its first entry."""
         self.album_list.focus()
-        self.album_list.action_first()
+        highlighted = self.album_list.highlighted
+        if highlighted is None or focus_first:
+            self.album_list.action_first()
 
     def handle_search(self, query: str = "", artist_id: str = ""):
         """Handle a search request.
@@ -561,15 +475,13 @@ class AlbumSelection(VerticalGroup):
         """
         self.album_list.clear_options()
         for album in albums:
-            self.album_list.add_option(
-                Option(
-                    (
-                        f"{album.name}   {album.audio_modes}:"
-                        f"{'|'.join(album.media_metadata_tags)}"
-                    ),
-                    id=str(album.id),
-                )
+            duration = 0
+            if album.duration is not None:
+                duration = datetime.timedelta(seconds=float(album.duration))
+            text = Content.from_markup(
+                f"{album.name} [d]({album.year}) {duration}[/d]"
             )
+            self.album_list.add_option(Option(text, id=str(album.id)))
 
     def get_selected_album_id(self) -> str:
         """Return the currently highlighted album's id.
@@ -577,11 +489,11 @@ class AlbumSelection(VerticalGroup):
         Returns:
             str: Id of the currently highlighted album.
         """
-        if self.album_list.highlighted is not None:
-            return self.album_list.get_option_at_index(
-                self.album_list.highlighted
-            ).id
-        return ""
+        album_id = None
+        highlighted = self.album_list.highlighted
+        if highlighted is not None:
+            album_id = self.album_list.get_option_at_index(highlighted).id
+        return album_id or ""
 
     def compose(self) -> ComposeResult:
         """Compose the album selection screen.
@@ -651,17 +563,20 @@ class ArtistSearch(VerticalGroup):
             artists: List of artists.
         """
         if self.artist_list is not None:
-            _ = self.artist_list.clear_options()
+            self.artist_list.clear_options()
             for artist in artists:
                 if artist.name and artist.id:
                     _ = self.artist_list.add_option(
                         Option(artist.name, id=str(artist.id))
                     )
 
-    def focus_first(self):
+    def focus_list(self, focus_first: bool = False):
         """Focus the list and its first entry."""
         if self.artist_list is not None:
-            self.artist_list.focus().action_first()
+            self.artist_list.focus()
+            highlighted = self.artist_list.highlighted
+            if highlighted is None or focus_first:
+                self.artist_list.action_first()
 
     def get_selected_artist_id(self) -> str:
         """Return the currently highlighted artist's id.
@@ -753,8 +668,23 @@ class MainScreen(Screen):
         """Focus previous tab."""
         self.query_one(Tabs).action_previous_tab()
 
+    def on_tab_activated(self, _content: TabbedContent, _tab):
+        """Set focus to the list when a tab is activated.
+
+        Args:
+            _content: Not used.
+            _tab: Not used.
+        """
+        self._focus_list()
+
     def action_focus_tab(self, tab_name: str):
+        """Focus the given tab.
+
+        Args:
+            tab_name: Name of the tab.
+        """
         self.query_one(TabbedContent).active = tab_name
+        self._focus_list()
 
     def handle_search(self):
         """Handle a search request."""
@@ -769,30 +699,30 @@ class MainScreen(Screen):
         if self.track_selection:
             self.track_selection.set_tracks(result["tracks"])
 
-        self._focus_first()
+        self._focus_list(focus_first=True)
 
-    def _focus_first(self):
+    def _focus_list(self, focus_first: bool = False):
         match self.query_one("#tabs").active:
             case "tracks":
-                self.track_selection.focus_first()
+                self.track_selection.focus_list(focus_first)
             case "artists":
-                self.artist_search.focus_first()
+                self.artist_search.focus_list(focus_first)
             case "albums":
-                self.album_selection.focus_first()
+                self.album_selection.focus_list(focus_first)
 
     def display_albums_of_selected_artist(self):
         """Display the albums of the selected artist."""
         artist_id = self.artist_search.get_selected_artist_id()
         if self.album_selection:
             self.album_selection.handle_search(artist_id=artist_id)
-            self.album_selection.focus_first()
+            self.album_selection.focus_list()
 
     def display_tracks_of_selected_album(self):
         """Display the tracks of the selected album."""
         album_id = self.album_selection.get_selected_album_id()
         if self.track_selection:
             self.track_selection.handle_search(album_id=album_id)
-            self.track_selection.focus_first()
+            self.track_selection.focus_list()
 
     def select_track(self):
         """Play the selected track."""
