@@ -2,6 +2,15 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.2.0](https://github.com/mkonig/tuidal/compare/cd83702a076698df961137364970e4d0942134f2..v0.2.0) - 2025-11-07
+#### Features
+- Year and duration for albums - ([40078b3](https://github.com/mkonig/tuidal/commit/40078b379f04f88f71f1e5b3c31b4dce1910ef95)) - [@mkonig](https://github.com/mkonig)
+- Shortcut highlighting for tabs. - ([5c792a4](https://github.com/mkonig/tuidal/commit/5c792a40bf12d45bb75c40e4e82c3a62f79363c3)) - [@mkonig](https://github.com/mkonig)
+- Better focus handling. - ([9c722fe](https://github.com/mkonig/tuidal/commit/9c722fef0d533a9c20ad02984f2558e1da101a94)) - [@mkonig](https://github.com/mkonig)
+- New tabbed ui. - ([cd83702](https://github.com/mkonig/tuidal/commit/cd83702a076698df961137364970e4d0942134f2)) - [@mkonig](https://github.com/mkonig)
+
+- - -
+
 ## [v0.1.1](https://github.com/mkonig/tuidal/compare/f7f2a38ac3109c9624f21800192d0e3a6fa8e16d..v0.1.1) - 2025-10-13
 #### Bug Fixes
 - Wrong parameter name when initialising PlayerWidget. - ([9803437](https://github.com/mkonig/tuidal/commit/9803437a45621e8b873988b331dd9f5825d1e62b)) - [@mkonig](https://github.com/mkonig)
