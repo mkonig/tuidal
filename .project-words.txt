@@ -105,3 +105,4 @@ linter
 pdm
 cocogitto
 TidalArtist
+Gettext

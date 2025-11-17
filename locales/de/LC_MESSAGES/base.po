@@ -1,0 +1,65 @@
+# German translations for PACKAGE package.
+# Copyright (C) 2025 ORGANIZATION
+# m <koenig@v-i-t.de>, 2025.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2025-11-14 15:08+0100\n"
+"PO-Revision-Date: 2025-11-14 14:09+0100\n"
+"Last-Translator: m <koenig@v-i-t.de>\n"
+"Language-Team: German <translation-team-de@lists.sourceforge.net>\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: pygettext.py 1.5\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/tuidal/tuidal.py:657
+msgid "New search"
+msgstr "Neue Suche"
+
+#: src/tuidal/tuidal.py:658
+msgid "Search/Select"
+msgstr "Suchen/Auswählen"
+
+#: src/tuidal/tuidal.py:659
+msgid "Prev Tab"
+msgstr "Vorheriges Tab"
+
+#: src/tuidal/tuidal.py:660
+msgid "Next Tab"
+msgstr "Nächstes Tab"
+
+#: src/tuidal/tuidal.py:784
+msgid "Search:"
+msgstr "Suche:"
+
+#: src/tuidal/tuidal.py:788
+msgid "\\[[u]A[/u]]rtists"
+msgstr "\\[[u]a[/u]]Künstler"
+
+#: src/tuidal/tuidal.py:791
+msgid "Al\\[[u]b[/u]]ums"
+msgstr "Al\\[[u]b[/u]]en"
+
+#: src/tuidal/tuidal.py:793
+msgid "\\[[u]T[/u]]racks"
+msgstr "\\[[u]t[/u]]Lieder"
+
+#: src/tuidal/tuidal.py:809
+msgid "Quit"
+msgstr "Schliessen"
+
+#: src/tuidal/tuidal.py:810
+msgid "Play/Pause"
+msgstr "Abspielen/Pause"
+
+#: src/tuidal/tuidal.py:811
+msgid "Next"
+msgstr "Nächstes"
+
+#: src/tuidal/tuidal.py:812
+msgid "Previous"
+msgstr "Vorheriges"

@@ -2,6 +2,7 @@
 """Tidal tui player."""
 
 import datetime
+import gettext
 from enum import Enum
 from typing import ClassVar
 
@@ -35,6 +36,29 @@ from tidalapi.media import Track as TidalTrack
 cr = structlog.dev.ConsoleRenderer.get_active()
 cr.colors = False
 log = structlog.get_logger()
+
+
+def setup_localization(language: str = "en"):
+    """Load localization.
+
+    Args:
+        language: The language to load.
+
+    Returns:
+        Gettext function.
+    """
+    localedir = "locales"
+
+    log.info("Loading translation.", localedir=localedir)
+    translation = gettext.translation(
+        "base", localedir, languages=[language], fallback=True
+    )
+    translation.install()
+
+    return translation.gettext
+
+
+_ = setup_localization("de")
 
 
 def mpv_logger(_loglevel: str, component: str, message: str):
@@ -130,11 +154,11 @@ class PlayerWidget(HorizontalGroup):
         Yields:
             The widget gui.
         """
-        self.currently_playing = Static("A song", id="currently_playing")
+        self.currently_playing = Static("", id="currently_playing")
         self.progress_bar = ProgressBar(show_percentage=False, show_eta=False)
         self.progress_bar.update(total=100, progress=30)
-        self.playback_time = Static("time", id="playback_time")
-        self.track_duration = Static("duration", id="track_duration")
+        self.playback_time = Static("", id="playback_time")
+        self.track_duration = Static("", id="track_duration")
         yield self.currently_playing
         yield self.playback_time
         yield self.progress_bar
@@ -630,10 +654,10 @@ class MainScreen(Screen):
     """
 
     BINDINGS = [
-        Binding("/", "new_search", "New search"),
-        Binding("enter", "search_or_select", "Search/Select", priority=True),
-        Binding("left", "previous_tab", "Prev Tab", priority=True),
-        Binding("right", "next_tab", "Next Tab", priority=True),
+        Binding("/", "new_search", _("New search")),
+        Binding("enter", "search_or_select", _("Search/Select"), priority=True),
+        Binding("left", "previous_tab", _("Prev Tab"), priority=True),
+        Binding("right", "next_tab", _("Next Tab"), priority=True),
         Binding("a", "focus_tab('artists')", priority=True),
         Binding("b", "focus_tab('albums')", priority=True),
         Binding("t", "focus_tab('tracks')", priority=True),
@@ -757,14 +781,20 @@ class MainScreen(Screen):
         """
         yield Header()
         yield Footer()
-        yield Static("Search:")
+        yield Static(_("Search:"))
         yield self.search_input
         with TabbedContent(id="tabs", classes="main-tabs"):
-            with TabPane(Content.from_markup("[u]A[/u]rtists"), id="artists"):
+            with TabPane(
+                Content.from_markup(_("\\[[u]A[/u]]rtists")), id="artists"
+            ):
                 yield self.artist_search
-            with TabPane(Content.from_markup("Al[u]b[/u]ums"), id="albums"):
+            with TabPane(
+                Content.from_markup(_("Al\\[[u]b[/u]]ums")), id="albums"
+            ):
                 yield self.album_selection
-            with TabPane(Content.from_markup("[u]T[/u]racks"), id="tracks"):
+            with TabPane(
+                Content.from_markup(_("\\[[u]T[/u]]racks")), id="tracks"
+            ):
                 yield self.track_selection
         yield self.player_widget
 
@@ -780,10 +810,10 @@ class Tuidal(App[None]):
     """
 
     BINDINGS = [
-        Binding("escape", "quit", "Esc Quit"),
-        Binding("p", "play_pause", "Play/Pause"),
-        Binding(">", "next_track", "Next"),
-        Binding("<", "prev_track", "Previous"),
+        Binding("escape", "quit", _("Quit")),
+        Binding("p", "play_pause", _("Play/Pause")),
+        Binding(">", "next_track", _("Next")),
+        Binding("<", "prev_track", _("Previous")),
     ]
 
     ENABLE_COMMAND_PALETTE: ClassVar[bool] = False
