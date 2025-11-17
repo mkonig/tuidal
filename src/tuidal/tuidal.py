@@ -3,6 +3,7 @@
 
 import datetime
 import gettext
+import tomllib
 from enum import Enum
 from typing import ClassVar
 
@@ -58,7 +59,12 @@ def setup_localization(language: str = "en"):
     return translation.gettext
 
 
-_ = setup_localization("de")
+config = {"ui": None}
+with open("tuidal.toml", "rb") as config_file:
+    config = tomllib.load(config_file)
+    log.debug("Config", config=config)
+
+_ = setup_localization(config["ui"].get("language", "us"))
 
 
 def mpv_logger(_loglevel: str, component: str, message: str):
@@ -854,6 +860,7 @@ class Tuidal(App[None]):
 
 def main():
     """Run the player."""
+    setup_localization(config.get("language", "us"))
     session = Session()
     session.create_session()
     if session.already_logged_in():
