@@ -693,19 +693,12 @@ class MainScreen(Screen):
     def action_next_tab(self):
         """Focus next tab."""
         self.query_one(Tabs).action_next_tab()
+        self.call_after_refresh(self._focus_list)
 
     def action_previous_tab(self):
         """Focus previous tab."""
         self.query_one(Tabs).action_previous_tab()
-
-    def on_tab_activated(self, _content: TabbedContent, _tab):
-        """Set focus to the list when a tab is activated.
-
-        Args:
-            _content: Not used.
-            _tab: Not used.
-        """
-        self._focus_list()
+        self.call_after_refresh(self._focus_list)
 
     def action_focus_tab(self, tab_name: str):
         """Focus the given tab.

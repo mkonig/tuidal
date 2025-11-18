@@ -1,3 +1,5 @@
 # Tuidal
 
-A tui music player for tidal.
+A TUI music player for tidal.
+
+![Tuidal main ui](./docs/tuidal.png)

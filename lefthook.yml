@@ -8,7 +8,7 @@ pre-commit:
   commands:
     markdown-lint:
       glob: "*.md"
-      run: markdownlint {staged_files}
+      run: markdownlint-cli2 {staged_files}
     mdformat:
       glob: "*.md"
       run: mdformat {staged_files}
