@@ -54,7 +54,7 @@ console = "textual console -x SYSTEM -x DEBUG -x EVENT"
 
 [project]
 name = "tuidal"
-version = "0.1.0"
+version = "0.2.0"
 description = "Tidal tui player"
 # PEP 621 project metadata
 # See https://www.python.org/dev/peps/pep-0621/
@@ -62,9 +62,9 @@ requires-python = ">=3.13"
 dependencies = [
   "tidalapi",
   "textual[syntax]",
-  "python-mpv",
   "structlog>=25.4.0",
   "better-exceptions>=0.3.3",
+  "mpv>=1.0.8",
 ]
 
 [project.scripts]

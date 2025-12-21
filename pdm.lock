@@ -5,7 +5,7 @@
 groups = ["default", "dev"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:012c7450b07079d4c58f403df48328c58c67183bd98a953e6723c46c6b40b1ca"
+content_hash = "sha256:d300053e72f567d15c7a4173681704d7ab13cdaec300b102d42b03b065866541"
 
 [[metadata.targets]]
 requires_python = ">=3.13"
@@ -461,6 +461,17 @@ files = [
 ]
 
 [[package]]
+name = "mpv"
+version = "1.0.8"
+requires_python = ">=3.9"
+summary = "A python interface to the mpv media player"
+groups = ["default"]
+files = [
+    {file = "mpv-1.0.8-py3-none-any.whl", hash = "sha256:dcf77f612e3f5ce49bd89393f37d286de7ac290db6b0800f1fdcfe0aeb5ba9b8"},
+    {file = "mpv-1.0.8.tar.gz", hash = "sha256:95dbd4d869cd8de7a27914ad33e776accc0f01cb82a6d5b31ca439ade2208ffb"},
+]
+
+[[package]]
 name = "msgpack"
 version = "1.1.2"
 requires_python = ">=3.9"
@@ -697,17 +708,6 @@ dependencies = [
 files = [
     {file = "python-dateutil-2.9.0.post0.tar.gz", hash = "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3"},
     {file = "python_dateutil-2.9.0.post0-py2.py3-none-any.whl", hash = "sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427"},
-]
-
-[[package]]
-name = "python-mpv"
-version = "1.0.8"
-requires_python = ">=3.9"
-summary = "A python interface to the mpv media player"
-groups = ["default"]
-files = [
-    {file = "python_mpv-1.0.8-py3-none-any.whl", hash = "sha256:b5296403e990fb7348df4ca2211937a030f524bf638657bda7e45a00bc2df0cd"},
-    {file = "python_mpv-1.0.8.tar.gz", hash = "sha256:017fa359da059c831a94c419083491903e6d2f7c81b9841c33c196cabf4b3fe3"},
 ]
 
 [[package]]
