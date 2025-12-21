@@ -5,25 +5,10 @@
 groups = ["default", "dev"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:74a931fd3373fec04977802b718f153cffdfb8e992ab7af4ff7ab195a7382870"
+content_hash = "sha256:012c7450b07079d4c58f403df48328c58c67183bd98a953e6723c46c6b40b1ca"
 
 [[metadata.targets]]
 requires_python = ">=3.13"
-
-[[package]]
-name = "aigpy"
-version = "2022.7.8.1"
-summary = "Python Common Tool"
-groups = ["default"]
-dependencies = [
-    "colorama",
-    "mutagen",
-    "requests",
-]
-files = [
-    {file = "aigpy-2022.7.8.1-py3-none-any.whl", hash = "sha256:3c3f14489604f365608e692fcb6021693fc978a905d5ea01e5534dac77cba36e"},
-    {file = "aigpy-2022.7.8.1.tar.gz", hash = "sha256:d6441c79de98742ff0bde82a1558597de8f8fb869e9865ef2b2b0a8de8cfd77c"},
-]
 
 [[package]]
 name = "aiohappyeyeballs"
@@ -225,6 +210,7 @@ version = "0.4.6"
 requires_python = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,>=2.7"
 summary = "Cross-platform colored terminal text."
 groups = ["default", "dev"]
+marker = "sys_platform == \"win32\" or platform_system == \"Windows\""
 files = [
     {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
@@ -332,7 +318,7 @@ name = "jinja2"
 version = "3.1.6"
 requires_python = ">=3.7"
 summary = "A very fast and expressive template engine."
-groups = ["default", "dev"]
+groups = ["dev"]
 dependencies = [
     "MarkupSafe>=2.0",
 ]
@@ -390,7 +376,7 @@ name = "markupsafe"
 version = "3.0.3"
 requires_python = ">=3.9"
 summary = "Safely add untrusted strings to HTML/XML markup."
-groups = ["default", "dev"]
+groups = ["dev"]
 files = [
     {file = "markupsafe-3.0.3-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:e1cf1972137e83c5d4c136c43ced9ac51d0e124706ee1c8aa8532c1287fa8795"},
     {file = "markupsafe-3.0.3-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:116bb52f642a37c115f517494ea5feb03889e04df47eeff5b130b1808ce7c219"},
@@ -598,17 +584,6 @@ files = [
 ]
 
 [[package]]
-name = "mutagen"
-version = "1.47.0"
-requires_python = ">=3.7"
-summary = "read and write audio tags for many formats"
-groups = ["default"]
-files = [
-    {file = "mutagen-1.47.0-py3-none-any.whl", hash = "sha256:edd96f50c5907a9539d8e5bba7245f62c9f520aef333d13392a79a4f70aca719"},
-    {file = "mutagen-1.47.0.tar.gz", hash = "sha256:719fadef0a978c31b4cf3c956261b3c58b6948b32023078a2117b1de09f0fc99"},
-]
-
-[[package]]
 name = "platformdirs"
 version = "4.5.0"
 requires_python = ">=3.10"
@@ -617,20 +592,6 @@ groups = ["default", "dev"]
 files = [
     {file = "platformdirs-4.5.0-py3-none-any.whl", hash = "sha256:e578a81bb873cbb89a41fcc904c7ef523cc18284b7e3b3ccf06aca1403b7ebd3"},
     {file = "platformdirs-4.5.0.tar.gz", hash = "sha256:70ddccdd7c99fc5942e9fc25636a8b34d04c24b335100223152c2803e4063312"},
-]
-
-[[package]]
-name = "prettytable"
-version = "3.16.0"
-requires_python = ">=3.9"
-summary = "A simple Python library for easily displaying tabular data in a visually appealing ASCII table format"
-groups = ["default"]
-dependencies = [
-    "wcwidth",
-]
-files = [
-    {file = "prettytable-3.16.0-py3-none-any.whl", hash = "sha256:b5eccfabb82222f5aa46b798ff02a8452cf530a352c31bddfa29be41242863aa"},
-    {file = "prettytable-3.16.0.tar.gz", hash = "sha256:3c64b31719d961bf69c9a7e03d0c1e477320906a98da63952bc6698d6164ff57"},
 ]
 
 [[package]]
@@ -714,48 +675,6 @@ files = [
 ]
 
 [[package]]
-name = "pycryptodome"
-version = "3.23.0"
-requires_python = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,>=2.7"
-summary = "Cryptographic library for Python"
-groups = ["default"]
-files = [
-    {file = "pycryptodome-3.23.0-cp313-cp313t-macosx_10_13_universal2.whl", hash = "sha256:0011f7f00cdb74879142011f95133274741778abba114ceca229adbf8e62c3e4"},
-    {file = "pycryptodome-3.23.0-cp313-cp313t-macosx_10_13_x86_64.whl", hash = "sha256:90460fc9e088ce095f9ee8356722d4f10f86e5be06e2354230a9880b9c549aae"},
-    {file = "pycryptodome-3.23.0-cp313-cp313t-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4764e64b269fc83b00f682c47443c2e6e85b18273712b98aa43bcb77f8570477"},
-    {file = "pycryptodome-3.23.0-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:eb8f24adb74984aa0e5d07a2368ad95276cf38051fe2dc6605cbcf482e04f2a7"},
-    {file = "pycryptodome-3.23.0-cp313-cp313t-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:d97618c9c6684a97ef7637ba43bdf6663a2e2e77efe0f863cce97a76af396446"},
-    {file = "pycryptodome-3.23.0-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:9a53a4fe5cb075075d515797d6ce2f56772ea7e6a1e5e4b96cf78a14bac3d265"},
-    {file = "pycryptodome-3.23.0-cp313-cp313t-musllinux_1_2_i686.whl", hash = "sha256:763d1d74f56f031788e5d307029caef067febf890cd1f8bf61183ae142f1a77b"},
-    {file = "pycryptodome-3.23.0-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:954af0e2bd7cea83ce72243b14e4fb518b18f0c1649b576d114973e2073b273d"},
-    {file = "pycryptodome-3.23.0-cp313-cp313t-win32.whl", hash = "sha256:257bb3572c63ad8ba40b89f6fc9d63a2a628e9f9708d31ee26560925ebe0210a"},
-    {file = "pycryptodome-3.23.0-cp313-cp313t-win_amd64.whl", hash = "sha256:6501790c5b62a29fcb227bd6b62012181d886a767ce9ed03b303d1f22eb5c625"},
-    {file = "pycryptodome-3.23.0-cp313-cp313t-win_arm64.whl", hash = "sha256:9a77627a330ab23ca43b48b130e202582e91cc69619947840ea4d2d1be21eb39"},
-    {file = "pycryptodome-3.23.0-cp37-abi3-macosx_10_9_universal2.whl", hash = "sha256:187058ab80b3281b1de11c2e6842a357a1f71b42cb1e15bce373f3d238135c27"},
-    {file = "pycryptodome-3.23.0-cp37-abi3-macosx_10_9_x86_64.whl", hash = "sha256:cfb5cd445280c5b0a4e6187a7ce8de5a07b5f3f897f235caa11f1f435f182843"},
-    {file = "pycryptodome-3.23.0-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:67bd81fcbe34f43ad9422ee8fd4843c8e7198dd88dd3d40e6de42ee65fbe1490"},
-    {file = "pycryptodome-3.23.0-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c8987bd3307a39bc03df5c8e0e3d8be0c4c3518b7f044b0f4c15d1aa78f52575"},
-    {file = "pycryptodome-3.23.0-cp37-abi3-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:aa0698f65e5b570426fc31b8162ed4603b0c2841cbb9088e2b01641e3065915b"},
-    {file = "pycryptodome-3.23.0-cp37-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:53ecbafc2b55353edcebd64bf5da94a2a2cdf5090a6915bcca6eca6cc452585a"},
-    {file = "pycryptodome-3.23.0-cp37-abi3-musllinux_1_2_i686.whl", hash = "sha256:156df9667ad9f2ad26255926524e1c136d6664b741547deb0a86a9acf5ea631f"},
-    {file = "pycryptodome-3.23.0-cp37-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:dea827b4d55ee390dc89b2afe5927d4308a8b538ae91d9c6f7a5090f397af1aa"},
-    {file = "pycryptodome-3.23.0-cp37-abi3-win32.whl", hash = "sha256:507dbead45474b62b2bbe318eb1c4c8ee641077532067fec9c1aa82c31f84886"},
-    {file = "pycryptodome-3.23.0-cp37-abi3-win_amd64.whl", hash = "sha256:c75b52aacc6c0c260f204cbdd834f76edc9fb0d8e0da9fbf8352ef58202564e2"},
-    {file = "pycryptodome-3.23.0-cp37-abi3-win_arm64.whl", hash = "sha256:11eeeb6917903876f134b56ba11abe95c0b0fd5e3330def218083c7d98bbcb3c"},
-    {file = "pycryptodome-3.23.0.tar.gz", hash = "sha256:447700a657182d60338bab09fdb27518f8856aecd80ae4c6bdddb67ff5da44ef"},
-]
-
-[[package]]
-name = "pydub"
-version = "0.25.1"
-summary = "Manipulate audio with an simple and easy high level interface"
-groups = ["default"]
-files = [
-    {file = "pydub-0.25.1-py2.py3-none-any.whl", hash = "sha256:65617e33033874b59d87db603aa1ed450633288aefead953b30bded59cb599a6"},
-    {file = "pydub-0.25.1.tar.gz", hash = "sha256:980a33ce9949cab2a569606b65674d748ecbca4f0796887fd6f46173a7b0d30f"},
-]
-
-[[package]]
 name = "pygments"
 version = "2.19.2"
 requires_python = ">=3.8"
@@ -764,54 +683,6 @@ groups = ["default", "dev"]
 files = [
     {file = "pygments-2.19.2-py3-none-any.whl", hash = "sha256:86540386c03d588bb81d44bc3928634ff26449851e99741617ecb9037ee5ec0b"},
     {file = "pygments-2.19.2.tar.gz", hash = "sha256:636cb2477cec7f8952536970bc533bc43743542f70392ae026374600add5b887"},
-]
-
-[[package]]
-name = "pyqt5"
-version = "5.15.11"
-requires_python = ">=3.8"
-summary = "Python bindings for the Qt cross platform application toolkit"
-groups = ["default"]
-dependencies = [
-    "PyQt5-Qt5<5.16.0,>=5.15.2",
-    "PyQt5-sip<13,>=12.15",
-]
-files = [
-    {file = "PyQt5-5.15.11-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:c8b03dd9380bb13c804f0bdb0f4956067f281785b5e12303d529f0462f9afdc2"},
-    {file = "PyQt5-5.15.11-cp38-abi3-macosx_11_0_x86_64.whl", hash = "sha256:6cd75628f6e732b1ffcfe709ab833a0716c0445d7aec8046a48d5843352becb6"},
-    {file = "PyQt5-5.15.11-cp38-abi3-manylinux_2_17_x86_64.whl", hash = "sha256:cd672a6738d1ae33ef7d9efa8e6cb0a1525ecf53ec86da80a9e1b6ec38c8d0f1"},
-    {file = "PyQt5-5.15.11-cp38-abi3-win32.whl", hash = "sha256:76be0322ceda5deecd1708a8d628e698089a1cea80d1a49d242a6d579a40babd"},
-    {file = "PyQt5-5.15.11-cp38-abi3-win_amd64.whl", hash = "sha256:bdde598a3bb95022131a5c9ea62e0a96bd6fb28932cc1619fd7ba211531b7517"},
-    {file = "PyQt5-5.15.11.tar.gz", hash = "sha256:fda45743ebb4a27b4b1a51c6d8ef455c4c1b5d610c90d2934c7802b5c1557c52"},
-]
-
-[[package]]
-name = "pyqt5-qt5"
-version = "5.15.17"
-summary = "The subset of a Qt installation needed by PyQt5."
-groups = ["default"]
-files = [
-    {file = "PyQt5_Qt5-5.15.17-py3-none-macosx_10_13_x86_64.whl", hash = "sha256:d8b8094108e748b4bbd315737cfed81291d2d228de43278f0b8bd7d2b808d2b9"},
-    {file = "PyQt5_Qt5-5.15.17-py3-none-macosx_11_0_arm64.whl", hash = "sha256:b68628f9b8261156f91d2f72ebc8dfb28697c4b83549245d9a68195bd2d74f0c"},
-    {file = "PyQt5_Qt5-5.15.17-py3-none-manylinux2014_x86_64.whl", hash = "sha256:b018f75d1cc61146396fa5af14da1db77c5d6318030e5e366f09ffdf7bd358d8"},
-]
-
-[[package]]
-name = "pyqt5-sip"
-version = "12.17.1"
-requires_python = ">=3.9"
-summary = "The sip module support for PyQt5"
-groups = ["default"]
-files = [
-    {file = "pyqt5_sip-12.17.1-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:9ebbd7769ccdaaa6295e9c872553b6cde17f38e171056f17300d8af9a14d1fc8"},
-    {file = "pyqt5_sip-12.17.1-cp313-cp313-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:b023da906a70af2cf5e6fc1932f441ede07530f3e164dd52c6c2bb5ab7c6f424"},
-    {file = "pyqt5_sip-12.17.1-cp313-cp313-win32.whl", hash = "sha256:36dbef482bd638786b909f3bda65b7b3d5cbd6cbf16797496de38bae542da307"},
-    {file = "pyqt5_sip-12.17.1-cp313-cp313-win_amd64.whl", hash = "sha256:d04e5551bbc3bcec98acc63b3b0618ddcbf31ff107349225b516fe7e7c0a7c8b"},
-    {file = "pyqt5_sip-12.17.1-cp314-cp314-macosx_10_15_universal2.whl", hash = "sha256:c49918287e1ad77956d1589f1d3d432a0be7630c646ea02cf652413a48e14458"},
-    {file = "pyqt5_sip-12.17.1-cp314-cp314-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:944a4bf1e1ee18ad03a54964c1c6433fb6de582313a1f0b17673e7203e22fc83"},
-    {file = "pyqt5_sip-12.17.1-cp314-cp314-win32.whl", hash = "sha256:99a2935fd662a67748625b1e6ffa0a2d1f2da068b9df6db04fa59a4a5d4ee613"},
-    {file = "pyqt5_sip-12.17.1-cp314-cp314-win_amd64.whl", hash = "sha256:aaa33232cc80793d14fdb3b149b27eec0855612ed66aad480add5ac49b9cee63"},
-    {file = "pyqt5_sip-12.17.1.tar.gz", hash = "sha256:0eab72bcb628f1926bf5b9ac51259d4fa18e8b2a81d199071135458f7d087ea8"},
 ]
 
 [[package]]
@@ -837,20 +708,6 @@ groups = ["default"]
 files = [
     {file = "python_mpv-1.0.8-py3-none-any.whl", hash = "sha256:b5296403e990fb7348df4ca2211937a030f524bf638657bda7e45a00bc2df0cd"},
     {file = "python_mpv-1.0.8.tar.gz", hash = "sha256:017fa359da059c831a94c419083491903e6d2f7c81b9841c33c196cabf4b3fe3"},
-]
-
-[[package]]
-name = "qt-material"
-version = "2.17"
-requires_python = ">=3.7"
-summary = "Material inspired stylesheet for PySide6 and PyQt6."
-groups = ["default"]
-dependencies = [
-    "Jinja2",
-]
-files = [
-    {file = "qt_material-2.17-py3-none-any.whl", hash = "sha256:660523341ae45b79d222bf15e202ec76ba3bf5e7e82170b66759738d7bb4873d"},
-    {file = "qt_material-2.17.tar.gz", hash = "sha256:b500a0c1f5ef8f46a8cf037d1aa5bdf9ea4eb618180b6332539dfbdd0647ad0d"},
 ]
 
 [[package]]
@@ -1004,23 +861,6 @@ dependencies = [
 files = [
     {file = "textual-6.6.0-py3-none-any.whl", hash = "sha256:5a9484bd15ee8a6fd8ac4ed4849fb25ee56bed2cecc7b8a83c4cd7d5f19515e5"},
     {file = "textual-6.6.0.tar.gz", hash = "sha256:53345166d6b0f9fd028ed0217d73b8f47c3a26679a18ba3b67616dcacb470eec"},
-]
-
-[[package]]
-name = "tidal-dl"
-version = "2022.10.31.1"
-summary = "Tidal Music Downloader."
-groups = ["default"]
-dependencies = [
-    "aigpy>=2022.7.8.1",
-    "prettytable",
-    "pycryptodome",
-    "pydub",
-    "requests>=2.22.0",
-]
-files = [
-    {file = "tidal-dl-2022.10.31.1.tar.gz", hash = "sha256:6f6000b222379f6fefe870b7edf308fddf14731671b1633e7e75af75a8c7ace8"},
-    {file = "tidal_dl-2022.10.31.1-py3-none-any.whl", hash = "sha256:01d833fd0a116f7b47be661ec8eee56df9a5e4621f55ca73843b16d140cf3791"},
 ]
 
 [[package]]
@@ -1377,17 +1217,6 @@ groups = ["default"]
 files = [
     {file = "urllib3-2.5.0-py3-none-any.whl", hash = "sha256:e6b01673c0fa6a13e374b50871808eb3bf7046c4b125b216f6bf1cc604cff0dc"},
     {file = "urllib3-2.5.0.tar.gz", hash = "sha256:3fc47733c7e419d4bc3f6b3dc2b4f890bb743906a30d56ba4a5bfa4bbff92760"},
-]
-
-[[package]]
-name = "wcwidth"
-version = "0.2.14"
-requires_python = ">=3.6"
-summary = "Measures the displayed width of unicode strings in a terminal"
-groups = ["default"]
-files = [
-    {file = "wcwidth-0.2.14-py2.py3-none-any.whl", hash = "sha256:a7bb560c8aee30f9957e5f9895805edd20602f2d7f720186dfd906e82b4982e1"},
-    {file = "wcwidth-0.2.14.tar.gz", hash = "sha256:4d478375d31bc5395a3c55c40ccdf3354688364cd61c4f6adacaa9215d0b3605"},
 ]
 
 [[package]]

@@ -60,13 +60,9 @@ description = "Tidal tui player"
 # See https://www.python.org/dev/peps/pep-0621/
 requires-python = ">=3.13"
 dependencies = [
-  "pyqt5",
-  "qt-material",
   "tidalapi",
-  "tidal-dl",
   "textual[syntax]",
   "python-mpv",
-  "requests",
   "structlog>=25.4.0",
   "better-exceptions>=0.3.3",
 ]
