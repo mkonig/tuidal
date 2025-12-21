@@ -64,7 +64,7 @@ dependencies = [
   "textual[syntax]",
   "structlog>=25.4.0",
   "better-exceptions>=0.3.3",
-  "mpv>=1.0.8",
+  "mpv>=1.0.7",
 ]
 
 [project.scripts]
