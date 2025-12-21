@@ -2,6 +2,19 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.3.0](https://github.com/mkonig/tuidal/compare/4e7f7537c8e974944cfc8e0b049c32c6fc526c9a..v0.3.0) - 2025-12-21
+#### Features
+- Basic toml config. - ([476352d](https://github.com/mkonig/tuidal/commit/476352dd45c7bf2ee07e45cb6d964c8c2085064f)) - [@mkonig](https://github.com/mkonig)
+- Added localization basics. - ([4e7f753](https://github.com/mkonig/tuidal/commit/4e7f7537c8e974944cfc8e0b049c32c6fc526c9a)) - [@mkonig](https://github.com/mkonig)
+#### Bug Fixes
+- Focus handling when using arrow keys to switch tabs. - ([519ed34](https://github.com/mkonig/tuidal/commit/519ed3452c778f917c089840a59836917e350b98)) - [@mkonig](https://github.com/mkonig)
+#### Miscellaneous Chores
+- Bump pyproject version. - ([417aa69](https://github.com/mkonig/tuidal/commit/417aa699622d58e8f5a8ae02208a5c57a63786c9)) - [@mkonig](https://github.com/mkonig)
+- Clean up dependencies. - ([a025538](https://github.com/mkonig/tuidal/commit/a025538c8b49d16fe9c0b70fa8e8cda5150a540f)) - [@mkonig](https://github.com/mkonig)
+- Clean up pdm. - ([be1dfe7](https://github.com/mkonig/tuidal/commit/be1dfe73c1b2f99d38037e09db2bd8677b79b4ff)) - [@mkonig](https://github.com/mkonig)
+
+- - -
+
 ## [v0.2.0](https://github.com/mkonig/tuidal/compare/cd83702a076698df961137364970e4d0942134f2..v0.2.0) - 2025-11-07
 #### Features
 - Year and duration for albums - ([40078b3](https://github.com/mkonig/tuidal/commit/40078b379f04f88f71f1e5b3c31b4dce1910ef95)) - [@mkonig](https://github.com/mkonig)
