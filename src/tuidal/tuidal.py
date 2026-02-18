@@ -4,13 +4,15 @@
 import datetime
 import gettext
 import tomllib
+from copy import deepcopy
 from enum import Enum
+from pathlib import Path
 from typing import ClassVar
 
 import mpv
 import structlog
-from . import stylix_theme
-from .session import Session
+from deepmerge import always_merger
+from platformdirs import user_config_dir
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import HorizontalGroup, VerticalGroup
@@ -33,6 +35,9 @@ from tidalapi.album import Album as TidalAlbum
 from tidalapi.artist import Artist as TidalArtist
 from tidalapi.exceptions import ObjectNotFound
 from tidalapi.media import Track as TidalTrack
+
+from . import stylix_theme
+from .session import Session
 
 cr = structlog.dev.ConsoleRenderer.get_active()
 cr.colors = False
@@ -59,10 +64,14 @@ def setup_localization(language: str = "en"):
     return translation.gettext
 
 
-config = {"ui": None}
-with open("tuidal.toml", "rb") as config_file:
-    config = tomllib.load(config_file)
-    log.debug("Config", config=config)
+config = {"ui": {"language": "us"}}
+config_path = Path(user_config_dir("tuidal")) / "tuidal.toml"
+
+if config_path.exists():
+    with open(config_path, "rb") as config_file:
+        loaded_config = tomllib.load(config_file)
+        config = always_merger.merge(deepcopy(config), loaded_config)
+        log.debug("Config", config=config)
 
 _ = setup_localization(config["ui"].get("language", "us"))
 
