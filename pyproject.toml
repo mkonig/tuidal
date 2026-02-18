@@ -65,7 +65,7 @@ dependencies = [
   "structlog>=25.4.0",
   "better-exceptions>=0.3.3",
   "mpv>=1.0.7",
-  "platformdirs>=4.9.2",
+  "platformdirs>=4.5.0",
   "deepmerge>=2.0",
 ]
 
