@@ -9,8 +9,8 @@ from typing import ClassVar
 
 import mpv
 import structlog
-import stylix_theme
-from session import Session
+from . import stylix_theme
+from .session import Session
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import HorizontalGroup, VerticalGroup

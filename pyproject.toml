@@ -49,7 +49,7 @@ name = "pip_conf_index_global"
 
 
 [tool.pdm.scripts]
-tuidal = "textual run --dev ./src/tuidal/tuidal.py"
+tuidal-dev = "textual run --dev ./src/tuidal/tuidal.py"
 console = "textual console -x SYSTEM -x DEBUG -x EVENT"
 
 [project]
